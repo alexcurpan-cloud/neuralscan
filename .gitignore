@@ -1,0 +1,28 @@
+# Secrets / credentials
+.env
+*.key
+*.pem
+credentials*
+credentials*/
+
+# Sample code (third-party, for derisk only — never committed)
+samples/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.gitattributes
+
+# NeuralScan specific
+*.log
