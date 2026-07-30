@@ -2,7 +2,7 @@
 
 > 1 in 3 AI-generated projects (Cursor, Lovable, Bolt, Claude Code) ships with exposed secrets or security vulnerabilities. NeuralScan catches them and explains how to fix them — in plain English.
 
-[![Tests](https://img.shields.io/badge/tests-27%2F27-passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-27%2F27-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/live-tunnel-success)](https://designer-organized-affiliated-family.trycloudflare.com)
