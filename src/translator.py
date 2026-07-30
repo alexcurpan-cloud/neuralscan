@@ -16,7 +16,7 @@ from typing import List, Dict, Any, Optional
 
 SEVERITY_LABELS = {
     "critical": "🔴 CRITICAL",
-    "high": "🟠 PERICOL",
+    "high": "🟠 HIGH",
     "medium": "🟡 MEDIUM",
     "low": "🔵 LOW",
 }

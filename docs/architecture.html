@@ -1,0 +1,200 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NeuralScan Architecture</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f8fafc;
+    --fg: #172033;
+    --muted: #5b6475;
+    --line: #64748b;
+    --neutral: #e2e8f0;
+    --input: #bfdbfe;
+    --process: #c7d2fe;
+    --storage: #99f6e4;
+    --external: #fde68a;
+    --risk: #fecaca;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --fg: #e5e7eb;
+      --muted: #a3adbd;
+      --line: #94a3b8;
+      --neutral: #334155;
+      --input: #1d4ed8;
+      --process: #4338ca;
+      --storage: #0f766e;
+      --external: #92400e;
+      --risk: #991b1b;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font:
+      14px/1.4 ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+  main {
+    max-width: 800px;
+    margin: 32px auto;
+    padding: 0 20px;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .title {
+    font-size: 18px;
+    font-weight: 650;
+    fill: var(--fg);
+  }
+  .label {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--fg);
+  }
+  .small {
+    font-size: 11px;
+    fill: var(--muted);
+  }
+  .node {
+    stroke: var(--line);
+    stroke-width: 1.5;
+    rx: 8;
+    ry: 8;
+  }
+  .neutral {
+    fill: var(--neutral);
+  }
+  .input {
+    fill: var(--input);
+  }
+  .process {
+    fill: var(--process);
+  }
+  .storage {
+    fill: var(--storage);
+  }
+  .external {
+    fill: var(--external);
+  }
+  .risk {
+    fill: var(--risk);
+  }
+  .edge {
+    stroke: var(--line);
+    stroke-width: 1.5;
+    fill: none;
+  }
+  .zone {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 6 5;
+    opacity: 0.8;
+  }
+</style>
+<main>
+<svg viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="30" class="title">NeuralScan Architecture</text>
+  <text x="20" y="48" class="small">Security scanner for AI-generated code — flow diagram</text>
+
+  <!-- Zone: User -->
+  <rect x="20" y="70" width="720" height="90" class="zone" />
+  <text x="30" y="88" class="small">User</text>
+
+  <!-- Browser -->
+  <rect x="260" y="95" width="180" height="44" class="node input" />
+  <text x="350" y="120" class="label" text-anchor="middle">Web Browser</text>
+  <text x="350" y="133" class="small" text-anchor="middle">localhost:5050</text>
+
+  <!-- Zone: Backend -->
+  <rect x="20" y="180" width="720" height="210" class="zone" />
+  <text x="30" y="198" class="small">Backend — Python + Flask</text>
+
+  <!-- API -->
+  <rect x="290" y="210" width="140" height="44" class="node process" />
+  <text x="360" y="235" class="label" text-anchor="middle">Flask API</text>
+  <text x="360" y="248" class="small" text-anchor="middle">/scan /health</text>
+
+  <!-- Scanner -->
+  <rect x="90" y="310" width="170" height="44" class="node process" />
+  <text x="175" y="335" class="label" text-anchor="middle">Scanner</text>
+  <text x="175" y="348" class="small" text-anchor="middle">7 regex patterns</text>
+
+  <!-- Translator -->
+  <rect x="340" y="310" width="170" height="44" class="node process" />
+  <text x="425" y="335" class="label" text-anchor="middle">Translator</text>
+  <text x="425" y="348" class="small" text-anchor="middle">rule-based templates</text>
+
+  <!-- Output -->
+  <rect x="570" y="310" width="140" height="44" class="node storage" />
+  <text x="640" y="335" class="label" text-anchor="middle">JSON Response</text>
+  <text x="640" y="348" class="small" text-anchor="middle">findings + report</text>
+
+  <!-- Edge: Browser → API -->
+  <path d="M 350 139 L 350 210" class="edge" marker-end="url(#arrow)" />
+  <text x="365" y="180" class="small">POST /scan</text>
+
+  <!-- Edge: API → Scanner -->
+  <path d="M 340 254 L 255 310" class="edge" marker-end="url(#arrow)" />
+  <text x="245" y="280" class="small">raw code</text>
+
+  <!-- Edge: Scanner → Translator -->
+  <path d="M 260 332 L 340 332" class="edge" marker-end="url(#arrow)" />
+  <text x="290" y="325" class="small">findings</text>
+
+  <!-- Edge: Translator → Output -->
+  <path d="M 510 332 L 570 332" class="edge" marker-end="url(#arrow)" />
+  <text x="530" y="325" class="small">report</text>
+
+  <!-- Edge: Output → API (back) -->
+  <path d="M 620 310 L 430 254" class="edge" marker-end="url(#arrow)" />
+
+  <!-- Edge: API → Browser -->
+  <path d="M 430 254 L 430 180 L 430 160" class="edge" marker-end="url(#arrow)" />
+  <text x="445" y="175" class="small">JSON response</text>
+
+  <!-- Zone: Detection categories -->
+  <rect x="20" y="410" width="720" height="95" class="zone" />
+  <text x="30" y="428" class="small">Detection Categories</text>
+
+  <!-- 7 category tags -->
+  <rect x="40" y="445" width="90" height="26" class="node risk" />
+  <text x="85" y="462" class="small" text-anchor="middle">🔴 Secrets</text>
+
+  <rect x="145" y="445" width="90" height="26" class="node risk" />
+  <text x="190" y="462" class="small" text-anchor="middle">🔴 SQLi</text>
+
+  <rect x="250" y="445" width="90" height="26" class="node risk" />
+  <text x="295" y="462" class="small" text-anchor="middle">🔴 CMD inj</text>
+
+  <rect x="355" y="445" width="90" height="26" class="node external" />
+  <text x="400" y="462" class="small" text-anchor="middle">🟠 Debug/RCE</text>
+
+  <rect x="460" y="445" width="90" height="26" class="node external" />
+  <text x="505" y="462" class="small" text-anchor="middle">🟠 Path trav</text>
+
+  <rect x="565" y="445" width="90" height="26" class="node neutral" />
+  <text x="610" y="462" class="small" text-anchor="middle">🟡 Weak crypto</text>
+
+  <rect x="670" y="445" width="60" height="26" class="node neutral" />
+  <text x="710" y="462" class="small" text-anchor="middle">🔵 HTTP</text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="var(--line)" />
+    </marker>
+  </defs>
+</svg>
+</main>

@@ -82,6 +82,133 @@ SECRET_PATTERNS = [
 ]
 
 
+# ─── Namespace host whitelist (plasă SECUNDARĂ, după context) ──────
+NAMESPACE_HOSTS = {
+    "w3.org",
+    "xmlsoap.org",
+    "schemas.xmlsoap.org",
+    "purl.org",
+    "openxmlformats.org",
+    "tempuri.org",
+    "www.w3.org",
+}
+
+
+def _extract_line(code: str, pos: int) -> str:
+    """Extrage textul liniei care conține poziția pos."""
+    line_start = code.rfind('\n', 0, pos) + 1
+    if line_start == -1 or line_start == 0:
+        line_start = 0
+    line_end = code.find('\n', pos)
+    if line_end == -1:
+        line_end = len(code)
+    return code[line_start:line_end]
+
+
+def _text_before(code: str, pos: int) -> str:
+    """Extrage textul de la începutul liniei până la poziția pos."""
+    line_start = code.rfind('\n', 0, pos) + 1
+    if line_start == -1 or line_start == 0:
+        line_start = 0
+    return code[line_start:pos]
+
+
+def _host_from_url(url: str) -> str:
+    """Extrage hostname-ul dintr-un URL http://."""
+    # http://some.host.com/path → some.host.com
+    rest = url[len("http://"):]
+    # Stop at first /, ?, #, or :
+    for sep in ('/', '?', '#', ':'):
+        idx = rest.find(sep)
+        if idx >= 0:
+            rest = rest[:idx]
+    return rest.lower()
+
+
+def _is_namespace_url(url: str) -> bool:
+    """Check if an http:// URL host is in the namespace whitelist (plasă SECUNDARĂ)."""
+    host = _host_from_url(url)
+    for ns_host in NAMESPACE_HOSTS:
+        if host == ns_host or host.endswith('.' + ns_host):
+            return True
+    return False
+
+
+# ─── Gap 1: Context-aware namespace detection for insecure_http ────
+# Patterns that identify the text BEFORE an http:// match as a namespace
+# declaration (NOT a real network target).
+NAMESPACE_CONTEXT_PATTERNS = [
+    # 1a. Variable/const name ENDS with Ns / Namespace / Schema / Xmlns
+    #     e.g. SoapSchemaNs = "http://...",  CustomNs = "http://..."
+    #     NU substring: "insecureUrl" conține "ns" dar nu e namespace.
+    #     Cheia: \w+ (unul+) + fără \w* după sufix → sufixul e la sfârșitul
+    #     identificatorului, imediat înainte de \s*[=:]
+    re.compile(r'\b\w+(?:Ns|Namespace|Schema|Xmlns)\s*[=:]\s*[\'\"#]?$', re.IGNORECASE),
+    # 1b. Type declaration XNamespace or XmlSerializerNamespaces
+    #     e.g. XNamespace x = "http://..."
+    re.compile(r'\bXNamespace\b|\bXmlSerializerNamespaces\b'),
+    # 2. XML attribute: xmlns=, xmlns:prefix=, targetNamespace=
+    #     e.g. xmlns:xsi="http://..."
+    re.compile(r'\bxmlns[\:\w]*\s*=\s*[\'\"#]?$', re.IGNORECASE),
+    re.compile(r'\btargetNamespace\s*=\s*[\'\"#]?$', re.IGNORECASE),
+    # 3. SOAP Action constant
+    #     e.g. private const string Action = "http://..."
+    re.compile(r'\bAction\s*=\s*[\'\"#]?$', re.IGNORECASE),
+    # 4. SOAPAction header
+    re.compile(r'SOAPAction[\'\"\s]*[:=]\s*[\'\"#]?$', re.IGNORECASE),
+    # 5. Namespace API method calls (AddNamespace, AppendNamespace, etc.)
+    re.compile(r'(?:AddNamespace|AppendNamespace|NamespaceManager|DefineNamespace|RegisterNamespace)', re.IGNORECASE),
+]
+
+
+def _is_namespace_context(line_before: str, match_url: str) -> bool:
+    """
+    Verifică dacă un URL http:// (matchuit de regex) e un identificator
+    de namespace în contextul liniei, NU o țintă reală de rețea.
+
+    line_before = textul de la începutul liniei până la URL (exclusiv)
+    match_url   = URL-ul matchuit (pentru fallback host-whitelist)
+    """
+    # Check 1: Context patterns — nume variabilă, tip, xmlns, SOAP Action
+    for pat in NAMESPACE_CONTEXT_PATTERNS:
+        if pat.search(line_before):
+            return True
+
+    # Check 2: Fallback — host whitelist (plasă secundară)
+    if _is_namespace_url(match_url):
+        return True
+
+    return False
+
+
+# ─── Gap 2: Token-level eval detection ─────────────────────────────
+# Check if THIS SPECIFIC eval match is a batch variable, not a function call.
+# Scanned on text BEFORE the match position (not the whole line).
+
+
+def _is_batch_eval_context(line_before: str, filename: str) -> bool:
+    """
+    Verifică dacă ocurența CURRENȚĂ de 'eval' e nume de variabilă batch,
+    NU apel de funcție. Verifică doar textul DINANTEA match-ului.
+
+    line_before = textul de la începutul liniei până la 'eval'
+    """
+    # Skip entirely for .bat/.cmd files — eval() is not a thing in batch
+    if filename.lower().endswith(('.bat', '.cmd')):
+        return True
+
+    # Check text just before 'eval' for batch variable patterns
+    stripped = line_before.rstrip()
+    # if defined eval → text_before ends with "if defined"
+    if re.search(r'if\s+defined\s*$', stripped, re.IGNORECASE):
+        return True
+    # set eval → text_before ends with "set"
+    if re.search(r'\bset\s*$', stripped, re.IGNORECASE):
+        return True
+
+    return False
+
+
 # ─── Code injection patterns ────────────────────────────────────────
 
 CODE_PATTERNS = [
@@ -111,7 +238,7 @@ CODE_PATTERNS = [
         "severity": "high",
         "confidence": "high",
         "description": "eval() cu input dinamic — executie de cod arbitrar.",
-        "pattern": re.compile(r'\beval\s*\(\s*(?!\s*[\'\"])', re.IGNORECASE),
+        "pattern": re.compile(r'\beval\s*\(', re.IGNORECASE),
     },
     {
         "type": "path_traversal",
@@ -198,6 +325,19 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
     for pattern_def in CODE_PATTERNS:
         for match in pattern_def["pattern"].finditer(code):
             line_no = code[:match.start()].count('\n') + 1
+
+            # ── Gap 1: insecure_http — context-based namespace detection ──
+            if pattern_def["type"] == "insecure_http":
+                before = _text_before(code, match.start())
+                if _is_namespace_context(before, match.group()):
+                    continue  # FP — namespace identifier, not network target
+
+            # ── Gap 2: eval_usage — token-level batch check ──
+            if pattern_def["type"] == "eval_usage":
+                before = _text_before(code, match.start())
+                if _is_batch_eval_context(before, filename):
+                    continue  # FP — eval is a variable name in batch context
+
             if line_no in matched_lines_code and pattern_def["type"] in ("sql_injection_concat", "sql_injection_format"):
                 continue
             matched_lines_code.add(line_no)

@@ -1,0 +1,11 @@
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+source = ["src"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
