@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-27%2F27-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Live](https://img.shields.io/badge/live-tunnel-success)](https://designer-organized-affiliated-family.trycloudflare.com)
+[![Live](https://img.shields.io/badge/live-tunnel-success)](https://div-own-screw-plants.trycloudflare.com)
 
 ---
 
@@ -20,6 +20,13 @@
 - [Tests](#tests)
 - [Deploy](#deploy)
 - [Roadmap](#roadmap)
+
+---
+
+## 🎯 Early Access
+
+Be among the first to try NeuralScan.
+[👉 Join the waitlist](https://tally.so/r/D4EaAb)
 
 ---
 
@@ -215,6 +222,7 @@ See [`docs/deploy.md`](docs/deploy.md) for detailed instructions.
 - [ ] File upload (zip / directory scan)
 - [ ] GitHub repo scan (public repos)
 - [ ] CI/CD integration (GitHub Action)
+- [x] Waitlist — Tally form live
 - [ ] Monetization — freemium tier
 
 ---
