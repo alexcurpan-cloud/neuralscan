@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-27%2F27-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Live](https://img.shields.io/badge/live-tunnel-success)](https://div-own-screw-plants.trycloudflare.com)
+[![Live](https://img.shields.io/badge/live-railway-success)](https://neuralscan-production.up.railway.app)
 
 ---
 
@@ -205,8 +205,8 @@ Covers: all 7 detection categories, clean code (zero false positives), edge case
 
 | Method | Details |
 |--------|---------|
+| **Railway** (live) | [neuralscan-production.up.railway.app](https://neuralscan-production.up.railway.app) — deploy permanent |
 | **Local** | `python src/app.py` → `http://localhost:5050` |
-| **Cloudflare Tunnel** | `cloudflared tunnel --url http://localhost:5050` |
 | **Railway / Render** | Set start command to `gunicorn src.app:app` |
 | **VPS** | Any Python-capable server, reverse proxy with nginx |
 
@@ -218,7 +218,7 @@ See [`docs/deploy.md`](docs/deploy.md) for detailed instructions.
 
 - [x] MVP — 7 categories, 27 tests, plain-English reports
 - [x] Derisk — validated on real projects, zero false positives
-- [x] Live deploy — Cloudflare Tunnel
+- [x] Live deploy — Railway (stable URL: neuralscan-production.up.railway.app)
 - [ ] File upload (zip / directory scan)
 - [ ] GitHub repo scan (public repos)
 - [ ] CI/CD integration (GitHub Action)
@@ -231,7 +231,7 @@ See [`docs/deploy.md`](docs/deploy.md) for detailed instructions.
 
 - **Python** + **Flask** — lightweight API server
 - **Regex** — pattern-based detection, zero ML cost
-- **Cloudflare Tunnel** — free public access
+- **Railway** — free permanent hosting, stable public URL
 - **GitHub** — open source (coming soon)
 
 Built in Brașov, for non-developers everywhere.
