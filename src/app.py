@@ -30,7 +30,36 @@ app = Flask(__name__)
 # Anti-DoS: dimensiune maximă request 100KB
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024
 
-# Anti-abuz: rate limit pe /scan (30 req/min per IP)
+# ─── Auth: API keys (Strat 1) ────────────────────────────────────────
+# Chei din env NEURALSCAN_API_KEYS (comma-separated). Fără cheie = anon (rate limit per IP).
+# Dogfood pattern HTTP Bridge: chei în .secrets.json → injectate prin env la pornire.
+API_KEYS = {k.strip() for k in os.environ.get('NEURALSCAN_API_KEYS', '').split(',') if k.strip()}
+
+
+def _request_key() -> str:
+    """Cheia trimisă de client (header X-API-Key), sau ''."""
+    return (request.headers.get('X-API-Key') or '').strip()
+
+
+def _has_valid_key() -> bool:
+    return _request_key() in API_KEYS
+
+
+def _current_key_id() -> str:
+    """ID scurt pt audit/log: key:abcd… sau anon."""
+    key = _request_key()
+    return f'key:{key[:8]}' if key in API_KEYS else 'anon'
+
+
+def _auth_bucket():
+    """Bucket de rate limit: cheie validă → per key; altfel → per IP."""
+    key = _request_key()
+    if key in API_KEYS:
+        return f'key:{key[:8]}'
+    return f'ip:{get_remote_address()}'
+
+
+# Anti-abuz: /scan → 300 req/min per key (auth), 30 req/min per IP (anon)
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -48,6 +77,11 @@ def rate_limited(e):
     return jsonify({"error": "Rate limit exceeded — please slow down and try again in a minute."}), 429
 
 
+@app.errorhandler(401)
+def unauthorized(e):
+    return jsonify({"error": "Invalid API key. Pass X-API-Key header."}), 401
+
+
 @app.after_request
 def security_headers(resp):
     """Headere de securitate pe toate răspunsurile."""
@@ -62,11 +96,12 @@ def security_headers(resp):
 # ─── API: POST /scan ────────────────────────────────────────────────
 
 @app.route('/scan', methods=['POST'])
-@limiter.limit("30 per minute")
+@limiter.limit(lambda: "300 per minute" if _has_valid_key() else "30 per minute", key_func=_auth_bucket)
 def scan():
     """
     Primeste cod, il scrie in fisier temp, ruleaza scanare, returneaza JSON.
     Body: { "code": "...", "filename": "optional.py" }
+    Auth: X-API-Key optional — cu cheie valida → rate limit generos; fara → per IP.
     """
     data = request.get_json(silent=True)
     if not data or 'code' not in data:
@@ -74,6 +109,10 @@ def scan():
             "error": "Trimite JSON cu campul 'code'.",
             "exemplu": '{ "code": "print(1)", "filename": "test.py" }'
         }), 400
+
+    # Auth: header prezent dar cheie invalida → 401 (fara header = anon, merge)
+    if _request_key() and not _has_valid_key():
+        return jsonify({"error": "Invalid API key. Pass X-API-Key header."}), 401
 
     code = data['code']
     filename = data.get('filename', 'input.py')
@@ -86,6 +125,9 @@ def scan():
 
     if not code.strip():
         return jsonify({"findings": [], "total": 0, "summary": {}}), 200
+
+    # Audit minimal: cine scanează (key_id scurt / anon) + dimensiune
+    app.logger.info("scan: %s size=%d", _current_key_id(), len(code))
 
     # Scrie in fisier temp
     tmp = tempfile.NamedTemporaryFile(

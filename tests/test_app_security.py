@@ -9,9 +9,13 @@ Securitate Strat 0 — teste pentru protecțiile noi din app.py:
 
 import sys
 import os
+os.environ.setdefault('NEURALSCAN_API_KEYS', 'test-key-123')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.app import app
+
+
+TEST_KEY = 'test-key-123'
 
 
 def _client():
@@ -67,6 +71,27 @@ def test_security_headers():
         assert r.headers.get('X-Frame-Options') == 'DENY'
         assert r.headers.get('Referrer-Policy') == 'no-referrer'
         assert 'Content-Security-Policy' in r.headers
+
+
+def test_api_key_valid():
+    """Cheie validă → 200 (auth OK)."""
+    r = _client().post('/scan', json={'code': 'x = 1'},
+                       headers={'X-API-Key': TEST_KEY})
+    assert r.status_code == 200
+
+
+def test_api_key_invalid():
+    """Cheie greșită în header → 401 (nu e tăcută, clientul vede eroarea)."""
+    r = _client().post('/scan', json={'code': 'x = 1'},
+                       headers={'X-API-Key': 'wrong-key'})
+    assert r.status_code == 401
+    assert 'Invalid API key' in r.get_json()['error']
+
+
+def test_api_key_missing_is_anon():
+    """Fără header → anon, merge (UI-ul public rămâne funcțional)."""
+    r = _client().post('/scan', json={'code': 'x = 1'})
+    assert r.status_code == 200
 
 
 def test_rate_limit():
