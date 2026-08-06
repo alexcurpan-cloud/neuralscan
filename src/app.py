@@ -15,6 +15,8 @@ import tempfile
 import traceback
 
 from flask import Flask, request, jsonify, render_template_string
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,9 +26,43 @@ from translator import translate_findings
 
 app = Flask(__name__)
 
+# ─── Securitate: limite de bază (Strat 0) ───────────────────────────
+# Anti-DoS: dimensiune maximă request 100KB
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024
+
+# Anti-abuz: rate limit pe /scan (30 req/min per IP)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="memory://",
+)
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"error": "Request too large — maximum 100KB."}), 413
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({"error": "Rate limit exceeded — please slow down and try again in a minute."}), 429
+
+
+@app.after_request
+def security_headers(resp):
+    """Headere de securitate pe toate răspunsurile."""
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'DENY')
+    resp.headers.setdefault('Referrer-Policy', 'no-referrer')
+    resp.headers.setdefault('Content-Security-Policy',
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; img-src 'self' data:")
+    return resp
+
 # ─── API: POST /scan ────────────────────────────────────────────────
 
 @app.route('/scan', methods=['POST'])
+@limiter.limit("30 per minute")
 def scan():
     """
     Primeste cod, il scrie in fisier temp, ruleaza scanare, returneaza JSON.
@@ -41,6 +77,12 @@ def scan():
 
     code = data['code']
     filename = data.get('filename', 'input.py')
+
+    if not isinstance(code, str):
+        return jsonify({"error": "Campul 'code' trebuie sa fie string."}), 400
+
+    if len(code) > 100_000:
+        return jsonify({"error": "Code too large — maximum 100KB."}), 413
 
     if not code.strip():
         return jsonify({"findings": [], "total": 0, "summary": {}}), 200
@@ -79,10 +121,11 @@ def scan():
         return jsonify(result)
 
     except Exception as e:
+        # Log intern complet, fara sa scurgem detalii catre client
+        app.logger.error("Scan failed: %s\n%s", e, traceback.format_exc())
         return jsonify({
             "status": "error",
-            "error": str(e),
-            "traceback": traceback.format_exc()
+            "error": "Internal scan error. Please try again with a smaller code sample."
         }), 500
 
     finally:
@@ -370,6 +413,10 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function clearAll() {
   codeInput.value = '';
   resultsDiv.innerHTML = '';
@@ -434,7 +481,7 @@ async function scan() {
     const data = await res.json();
 
     if (!res.ok) {
-      resultsDiv.innerHTML = `<div class="empty">❌ Error: ${data.error || 'unknown'}</div>`;
+      resultsDiv.innerHTML = `<div class="empty">❌ Error: ${escapeHtml(data.error) || 'unknown'}</div>`;
       statusText.textContent = 'Error';
       return;
     }
@@ -491,17 +538,17 @@ function renderResults(data) {
 
     let snippetHtml = '';
     if (r.snippet) {
-      snippetHtml = `<div class="snippet">${r.snippet}</div>`;
+      snippetHtml = `<div class="snippet">${escapeHtml(r.snippet)}</div>`;
     }
 
     html += `<div class="card ${cls}">
       <div class="card-header">
-        <div class="card-title">${r.titlu}</div>
-        <span class="badge ${cls}">${r.severity}</span>
+        <div class="card-title">${escapeHtml(r.titlu)}</div>
+        <span class="badge ${cls}">${escapeHtml(r.severity)}</span>
       </div>
       <div class="card-body">
-        <div class="card-meta">Line ${r.line}${r.match_redactat ? ' · Match: ' + r.match_redactat : ''}</div>
-        <p>${r.explicatie}</p>
+        <div class="card-meta">Line ${r.line}${r.match_redactat ? ' · Match: ' + escapeHtml(r.match_redactat) : ''}</div>
+        <p>${escapeHtml(r.explicatie)}</p>
         ${snippetHtml}
         <button class="btn-fix" onclick="copyFix(${idx})">📋 Copy fix prompt</button>
         <span id="copied_${idx}" style="color:var(--low);font-size:0.8rem;margin-left:8px;display:none;">Copied! ✓</span>
