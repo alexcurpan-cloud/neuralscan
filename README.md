@@ -2,7 +2,7 @@
 
 > 1 in 3 AI-generated projects (Cursor, Lovable, Bolt, Claude Code) ships with exposed secrets or security vulnerabilities. NeuralScan catches them and explains how to fix them — in plain English.
 
-[![Tests](https://img.shields.io/badge/tests-27%2F27-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
+[![Tests](https://img.shields.io/badge/tests-36%2F36-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/live-railway-success)](https://neuralscan-production.up.railway.app)
@@ -119,7 +119,7 @@ neuralscan/
 │   └── translator.py       # Plain-language report generator
 ├── tests/
 │   ├── __init__.py
-│   └── test_scanner.py     # 27 automated tests
+│   └── test_scanner.py     # 36 automated tests
 ├── docs/
 │   ├── quickstart.md       # Getting started guide
 │   └── deploy.md           # Deployment options
@@ -194,7 +194,7 @@ Open `http://localhost:5050` — dark theme, paste your code, click **Check**, r
 
 ```bash
 python -m pytest tests/ -v
-# 27 passed in 0.08s
+# 36 passed in 0.52s
 ```
 
 Covers: all 7 detection categories, clean code (zero false positives), edge cases (namespace URLs, batch eval, parameterized queries), translator output format, file scanning, deduplication.
@@ -216,7 +216,7 @@ See [`docs/deploy.md`](docs/deploy.md) for detailed instructions.
 
 ## Roadmap
 
-- [x] MVP — 7 categories, 27 tests, plain-English reports
+- [x] MVP — 7 categories, 36 tests, plain-English reports
 - [x] Derisk — validated on real projects, zero false positives
 - [x] Live deploy — Railway (stable URL: neuralscan-production.up.railway.app)
 - [ ] File upload (zip / directory scan)
