@@ -120,5 +120,5 @@
 - [x] B2-2 Padel League — r/vibecoding ✅ (11:54)
 - [x] B2-3 cancel subscription — r/boltnewbuilders ✅ (11:54)
 - [ ] B2-4 falls apart — r/boltnewbuilders
-- [ ] B2-5 does Lovable really work — r/lovable
+- [x] B2-5 does Lovable really work — r/lovable ✅ (09-Aug 13:39, id p2mfi8p — live, removed=None)
 - [ ] B2-6 websites built with AI — r/vibecoding

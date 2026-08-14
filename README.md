@@ -164,6 +164,14 @@ Open `http://localhost:5050` — dark theme, paste your code, click **Check**, r
 | `/` | GET | Web UI |
 | `/scan` | POST | Scan code — body: `{ "code": "...", "filename": "optional.py" }` |
 | `/health` | GET | Server status |
+| `/stats` | GET | Audit stats (aggregate) — requires `X-Admin-Key` header |
+
+### Audit log (v2)
+
+Every scan writes **metadata only** to a local SQLite DB (`audit.db`):
+key id, hashed IP (never raw IP), code size, finding counts, duration, status.
+Raw code is **never stored**. `/stats` exposes aggregates (per day / per key)
+to the admin key only — never to testers.
 
 ### Scan response
 

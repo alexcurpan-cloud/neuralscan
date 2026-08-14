@@ -14,28 +14,33 @@ SECRETS = os.path.normpath(os.path.join(HERE, '..', '.secrets.json'))
 
 
 def load_keys():
-    """Citeste NEURALSCAN_API_KEYS din .secrets.json daca exista."""
+    """Citeste NEURALSCAN_API_KEYS + NEURALSCAN_ADMIN_KEY din .secrets.json daca exista."""
     if os.path.isfile(SECRETS):
         try:
             with open(SECRETS, encoding='utf-8') as f:
                 data = json.load(f)
             keys = data.get('NEURALSCAN_API_KEYS', '')
             if keys:
-                return keys
+                return keys, data
         except Exception as e:
             print(f"[warn] .secrets.json citit cu eroare: {e}")
-    return ''
+    return '', {}
 
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get('PORT', 5050))
-    keys = load_keys()
+    keys, secrets = load_keys()
     if keys:
         os.environ['NEURALSCAN_API_KEYS'] = keys
         print(f"[OK] API keys incarcate din {SECRETS}")
     else:
         print("[warn] FARA API keys (NEURALSCAN_API_KEYS negasit) — doar rate limit per IP.")
-
+    admin = (secrets or {}).get('NEURALSCAN_ADMIN_KEY', '')
+    if admin:
+        os.environ['NEURALSCAN_ADMIN_KEY'] = admin
+        print(f"[OK] Admin key incarcata (len={len(admin)})")
+    else:
+        print("[warn] FARA admin key — /stats va fi indisponibil (401).")
     sys.path.insert(0, os.path.join(HERE, 'src'))
     from src.app import app
     app.run(host='0.0.0.0', port=port, debug=False)

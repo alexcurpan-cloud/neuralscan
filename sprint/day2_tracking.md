@@ -18,7 +18,8 @@
 - Contul: **u/Winter-Fig-2362**
 - ✅ Live, 0 replies: „I've built an app" (r/lovable 1mpzdnq, p20pu91), Kids Event Finder (r/lovable 1v7gydm, p20qscz), Cancel subscription (r/boltnewbuilders 1u3h1sz, p20qvfg)
 - ❌ Lipsă din arhivă (probabil șterse de mods/automod): MeetingLens (r/nocode 1jcxusp), Padel League (r/vibecoding 1ugiklr)
-- ⚠️ B2-4, B2-5, B2-6 din day3_outreach_pack.md rămân NEPOSTATE
+- ✅ B2-5 postat 09-Aug 13:39 (r/lovable 1uc33up, id p2mfi8p) — live, removed=None, NU e în spam
+- ⚠️ B2-4, B2-6 din day3_outreach_pack.md rămân NEPOSTATE
 
 > Pachetul cu textele gata: sprint/day3_outreach_pack.md (06-Aug)
 > Link live verificat: neuralscan-production.up.railway.app → health 200 ✅

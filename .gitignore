@@ -26,3 +26,6 @@ Thumbs.db
 
 # NeuralScan specific
 *.log
+*.db
+*.db-wal
+*.db-shm

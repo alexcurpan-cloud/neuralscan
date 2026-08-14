@@ -11,6 +11,7 @@ Endpoints:
 import os
 import sys
 import json
+import time
 import tempfile
 import traceback
 
@@ -23,6 +24,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from scanner import scan_code
 from translator import translate_findings
+import audit
+
+audit.init_db()
 
 app = Flask(__name__)
 
@@ -34,6 +38,9 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024
 # Chei din env NEURALSCAN_API_KEYS (comma-separated). Fără cheie = anon (rate limit per IP).
 # Dogfood pattern HTTP Bridge: chei în .secrets.json → injectate prin env la pornire.
 API_KEYS = {k.strip() for k in os.environ.get('NEURALSCAN_API_KEYS', '').split(',') if k.strip()}
+
+# Cheie admin pt /stats (separata de cheile de tester — privilege minim).
+ADMIN_KEY = os.environ.get('NEURALSCAN_ADMIN_KEY', '').strip()
 
 
 def _request_key() -> str:
@@ -129,6 +136,8 @@ def scan():
     # Audit minimal: cine scanează (key_id scurt / anon) + dimensiune
     app.logger.info("scan: %s size=%d", _current_key_id(), len(code))
 
+    start_ms = time.time()
+
     # Scrie in fisier temp
     tmp = tempfile.NamedTemporaryFile(
         mode='w',
@@ -160,11 +169,16 @@ def scan():
             "findings": findings,        # raw
             "report": reports,           # tradus
         }
+        audit.log_scan(_current_key_id(), request.remote_addr, len(code),
+                       result["summary"], int((time.time() - start_ms) * 1000), 'ok')
         return jsonify(result)
 
     except Exception as e:
         # Log intern complet, fara sa scurgem detalii catre client
         app.logger.error("Scan failed: %s\n%s", e, traceback.format_exc())
+        audit.log_scan(_current_key_id(), request.remote_addr, len(code),
+                       {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0},
+                       int((time.time() - start_ms) * 1000), 'error')
         return jsonify({
             "status": "error",
             "error": "Internal scan error. Please try again with a smaller code sample."
@@ -176,6 +190,21 @@ def scan():
             os.unlink(tmp_path)
         except:
             pass
+
+
+# ─── Stats (admin only) ──────────────────────────────────────────────
+
+@app.route('/stats', methods=['GET'])
+@limiter.limit("10 per minute")
+def stats():
+    """Statistici agregate de folosire. Doar cu cheie admin (X-Admin-Key).
+    Returneaza metadate (numar scan-uri, pe zi, pe cheie) — NICIODATA cod scanat,
+    nici IP real (doar hash)."""
+    if not ADMIN_KEY or request.headers.get('X-Admin-Key', '') != ADMIN_KEY:
+        return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
+    days = request.args.get('days', 14, type=int)
+    days = max(1, min(days, 90))
+    return jsonify(audit.get_stats(days=days))
 
 
 # ─── Health ─────────────────────────────────────────────────────────
