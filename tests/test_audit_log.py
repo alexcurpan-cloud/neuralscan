@@ -14,6 +14,7 @@ _TEST_DB = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'test_audit.db')
 os.environ.setdefault('NEURALSCAN_API_KEYS', 'test-key-123')
 os.environ.setdefault('NEURALSCAN_ADMIN_KEY', 'admin-test-key-456')
+os.environ.setdefault('NEURALSCAN_AUDIT_PEPPER', 'test-pepper')
 os.environ.setdefault('NEURALSCAN_DB', _TEST_DB)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

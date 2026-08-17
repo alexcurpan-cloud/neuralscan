@@ -14,10 +14,12 @@ import json
 import time
 import tempfile
 import traceback
+import hmac
 
 from flask import Flask, request, jsonify, render_template_string
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +31,11 @@ import audit
 audit.init_db()
 
 app = Flask(__name__)
+
+# Railway (si majoritatea PaaS) termina TLS si pune IP-ul real in X-Forwarded-For.
+# Fara ProxyFix, request.remote_addr = IP-ul proxy-ului -> TOTI anonimii impart UN bucket
+# de rate limit (30/min) si ip_hash din audit e identic pentru toata lumea.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 # ─── Securitate: limite de bază (Strat 0) ───────────────────────────
 # Anti-DoS: dimensiune maximă request 100KB
@@ -200,7 +207,9 @@ def stats():
     """Statistici agregate de folosire. Doar cu cheie admin (X-Admin-Key).
     Returneaza metadate (numar scan-uri, pe zi, pe cheie) — NICIODATA cod scanat,
     nici IP real (doar hash)."""
-    if not ADMIN_KEY or request.headers.get('X-Admin-Key', '') != ADMIN_KEY:
+    if not ADMIN_KEY or not hmac.compare_digest(
+            (request.headers.get('X-Admin-Key', '') or '').encode('utf-8'),
+            ADMIN_KEY.encode('utf-8')):
         return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
     days = request.args.get('days', 14, type=int)
     days = max(1, min(days, 90))

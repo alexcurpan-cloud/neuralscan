@@ -42,6 +42,10 @@
 - **Unghi de vânzare:** „n-ai site propriu = plătești comisioane mari și datele clienților trec prin platforme pe care nu le controlezi. Îți fac un site propriu sigur + scan securitate."
 - Toate au telefon public → outreach direct posibil, fără intermediari.
 
+## Status 17-Aug (update Alex, 23:45)
+- **Doar 2 răspunsuri până acum:** Denisa Stoian („OK”) + Ionela (cald). Ceilalți 5 (Vladimir, Dorali, Colțea, Acasă la Moieciu, Florin) — 0 răspuns încă.
+- Următor: follow-up Denisa (raport + apel), confirmare apel Ionela, follow-up restul la 48h (18-Aug seara).
+
 ## Pași următori
 - [x] 16-Aug 20:16: WhatsApp 5/5 trimise de Alex (Vladimir, Denisa, Colțea, Acasă la Moieciu, Florin)
 - [x] 16-Aug 20:15: **Denisa Stoian a răspuns „OK"** → urmărire: mesaj de follow-up + propunere apel

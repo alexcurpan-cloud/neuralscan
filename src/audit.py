@@ -22,7 +22,9 @@ from pathlib import Path
 DB_PATH = Path(os.environ.get('NEURALSCAN_DB', str(Path(__file__).resolve().parent.parent / 'audit.db')))
 
 # Sare pt hash IP — previne reverse-engineering pe IPv4 (spatiu mic).
-PEPPER = os.environ.get('NEURALSCAN_AUDIT_PEPPER', 'neuralscan-audit-v1')
+# OBLIGATORIU din env — repo-ul e PUBLIC, deci un default hardcodat e cunoscut de oricine
+# si face hash-ul reversibil. Fara pepper -> nu stocam hash deloc.
+PEPPER = os.environ.get('NEURALSCAN_AUDIT_PEPPER')
 
 _lock = threading.Lock()
 
@@ -59,6 +61,10 @@ def _connect():
 
 def init_db():
     """Creeaza schema daca nu exista. Apelat la pornirea app."""
+    if not PEPPER:
+        import logging
+        logging.getLogger('neuralscan.audit').warning(
+            "NEURALSCAN_AUDIT_PEPPER NESETAT — ip_hash dezactivat (stocam 'pepper-unset'). Seteaza-l in env!")
     with _lock:
         conn = _connect()
         try:
@@ -69,7 +75,10 @@ def init_db():
 
 
 def hash_ip(ip: str) -> str:
-    """Hash IP cu pepper — stocam doar hash, nu IP-ul real."""
+    """Hash IP cu pepper — stocam doar hash, nu IP-ul real.
+    Fara pepper configurat → 'pepper-unset' (nu persistam date reversibile)."""
+    if not PEPPER:
+        return 'pepper-unset'
     return hashlib.sha256(f"{PEPPER}:{ip}".encode('utf-8')).hexdigest()[:16]
 
 

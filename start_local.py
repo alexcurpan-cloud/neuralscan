@@ -41,6 +41,12 @@ def main():
         print(f"[OK] Admin key incarcata (len={len(admin)})")
     else:
         print("[warn] FARA admin key — /stats va fi indisponibil (401).")
+    pepper = (secrets or {}).get('NEURALSCAN_AUDIT_PEPPER', '')
+    if pepper:
+        os.environ['NEURALSCAN_AUDIT_PEPPER'] = pepper
+        print("[OK] Audit pepper incarcat")
+    else:
+        print("[warn] FARA audit pepper — ip_hash dezactivat (vezi audit.py).")
     sys.path.insert(0, os.path.join(HERE, 'src'))
     from src.app import app
     app.run(host='0.0.0.0', port=port, debug=False)

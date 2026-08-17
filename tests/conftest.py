@@ -11,6 +11,7 @@ _ROOT = Path(__file__).resolve().parent
 
 os.environ.setdefault('NEURALSCAN_API_KEYS', 'test-key-123')
 os.environ.setdefault('NEURALSCAN_ADMIN_KEY', 'admin-test-key-456')
+os.environ.setdefault('NEURALSCAN_AUDIT_PEPPER', 'test-pepper')
 os.environ.setdefault('NEURALSCAN_DB', str(_ROOT / 'test_audit.db'))
 
 # Asigura ca `import audit` (top-level, folosit de app.py) si `import src.audit`
