@@ -15,6 +15,7 @@ import time
 import tempfile
 import traceback
 import hmac
+import hashlib
 
 from flask import Flask, request, jsonify, render_template_string
 from flask_limiter import Limiter
@@ -27,8 +28,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scanner import scan_code
 from translator import translate_findings
 import audit
+import keys
 
 audit.init_db()
+keys.init_db()
 
 app = Flask(__name__)
 
@@ -41,9 +44,9 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 # Anti-DoS: dimensiune maximă request 100KB
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024
 
-# ─── Auth: API keys (Strat 1) ────────────────────────────────────────
-# Chei din env NEURALSCAN_API_KEYS (comma-separated). Fără cheie = anon (rate limit per IP).
-# Dogfood pattern HTTP Bridge: chei în .secrets.json → injectate prin env la pornire.
+# ─── Auth: API keys (Strat 1 + Strat 2) ───────────────────────────
+# Strat 2: chei in DB (hash, revocabile, per-user) — lookup inainte de legacy env.
+# Legacy: chei din env NEURALSCAN_API_KEYS (comma-separated) — merg in continuare (seed).
 API_KEYS = {k.strip() for k in os.environ.get('NEURALSCAN_API_KEYS', '').split(',') if k.strip()}
 
 # Cheie admin pt /stats (separata de cheile de tester — privilege minim).
@@ -55,22 +58,48 @@ def _request_key() -> str:
     return (request.headers.get('X-API-Key') or '').strip()
 
 
+def _db_key_info():
+    """Info DB (hash lookup, nerevocata) pt cheia curenta, sau None."""
+    k = _request_key()
+    if not k:
+        return None
+    return keys.lookup_by_key(k)
+
+
 def _has_valid_key() -> bool:
-    return _request_key() in API_KEYS
+    """Cheie valida = in DB (nerevocata) SAU legacy env."""
+    return _db_key_info() is not None or _request_key() in API_KEYS
 
 
 def _current_key_id() -> str:
-    """ID scurt pt audit/log: key:abcd… sau anon."""
+    """ID scurt pt audit/log: user:<email> key:<prefix> / key:<prefix> / anon."""
+    info = _db_key_info()
+    if info:
+        return f"user:{info['email']} key:{info['key_prefix']}"
     key = _request_key()
     return f'key:{key[:8]}' if key in API_KEYS else 'anon'
 
 
 def _auth_bucket():
-    """Bucket de rate limit: cheie validă → per key; altfel → per IP."""
+    """Bucket de rate limit: cheie DB -> per key_id; orice alta cheie prezentata (legacy/invalida)
+    -> bucket propriu (ca revocata/gresita sa primeasca 401, nu 429 pe bucket IP); altfel -> per IP."""
+    info = _db_key_info()
+    if info:
+        return f'key:{info["key_id"]}'
     key = _request_key()
-    if key in API_KEYS:
-        return f'key:{key[:8]}'
+    if key:
+        return f'key:{hashlib.sha256(key.encode()).hexdigest()[:16]}'
     return f'ip:{get_remote_address()}'
+
+
+def _rate_limit_str() -> str:
+    """Limita per cheie din DB (free/pro), legacy env 300, anon 30."""
+    info = _db_key_info()
+    if info:
+        return f"{info['rate_limit']} per minute"
+    if _request_key() in API_KEYS:
+        return "300 per minute"
+    return "30 per minute"
 
 
 # Anti-abuz: /scan → 300 req/min per key (auth), 30 req/min per IP (anon)
@@ -110,7 +139,7 @@ def security_headers(resp):
 # ─── API: POST /scan ────────────────────────────────────────────────
 
 @app.route('/scan', methods=['POST'])
-@limiter.limit(lambda: "300 per minute" if _has_valid_key() else "30 per minute", key_func=_auth_bucket)
+@limiter.limit(lambda: _rate_limit_str(), key_func=_auth_bucket)
 def scan():
     """
     Primeste cod, il scrie in fisier temp, ruleaza scanare, returneaza JSON.
@@ -182,7 +211,8 @@ def scan():
             "report": reports,           # tradus
         }
         audit.log_scan(_current_key_id(), request.remote_addr, len(code),
-                       result["summary"], int((time.time() - start_ms) * 1000), 'ok')
+                       result["summary"], int((time.time() - start_ms) * 1000), 'ok',
+                       owner_id=keys.owner_id_for_key(_request_key()))
         return jsonify(result)
 
     except Exception as e:
@@ -190,7 +220,8 @@ def scan():
         app.logger.error("Scan failed: %s\n%s", e, traceback.format_exc())
         audit.log_scan(_current_key_id(), request.remote_addr, len(code),
                        {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0},
-                       int((time.time() - start_ms) * 1000), 'error')
+                       int((time.time() - start_ms) * 1000), 'error',
+                       owner_id=keys.owner_id_for_key(_request_key()))
         return jsonify({
             "status": "error",
             "error": "Internal scan error. Please try again with a smaller code sample."
@@ -219,6 +250,25 @@ def stats():
     days = request.args.get('days', 14, type=int)
     days = max(1, min(days, 90))
     return jsonify(audit.get_stats(days=days))
+
+
+# ─── Scans per user (owner-scoping, Strat 2) ────────────────────────
+
+@app.route('/user/scans', methods=['GET'])
+@limiter.limit("60 per minute")
+def user_scans():
+    """Scan-urile DOAR ale userului curent (identificat prin X-API-Key din DB).
+    Fara cheie DB valida -> 401. Fara cod, fara IP real."""
+    info = _db_key_info()
+    if not info:
+        return jsonify({"error": "Valid X-API-Key (DB) required for this endpoint."}), 401
+    limit = request.args.get('limit', 20, type=int)
+    limit = max(1, min(limit, 100))
+    return jsonify({
+        "user": info["email"],
+        "plan": info["plan"],
+        "scans": audit.get_user_scans(info["user_id"], limit),
+    })
 
 
 # ─── Health ─────────────────────────────────────────────────────────

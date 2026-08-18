@@ -69,6 +69,10 @@ def init_db():
         conn = _connect()
         try:
             conn.executescript(_SCHEMA)
+            # Migrare Strat 2: coloana owner_id pe scans (legacy = NULL/anonymous)
+            cols = [r['name'] for r in conn.execute('PRAGMA table_info(scans)').fetchall()]
+            if 'owner_id' not in cols:
+                conn.execute('ALTER TABLE scans ADD COLUMN owner_id INTEGER')
             conn.commit()
         finally:
             conn.close()
@@ -83,7 +87,7 @@ def hash_ip(ip: str) -> str:
 
 
 def log_scan(key_id: str, ip: str, size: int, summary: dict,
-             duration_ms: int, status: str = 'ok'):
+             duration_ms: int, status: str = 'ok', owner_id=None):
     """Inregistreaza un scan. Nu arunca exceptii (audit nu trebuie sa cada pe /scan)."""
     total = int(summary.get('total', 0))
     if total == 0:
@@ -95,8 +99,8 @@ def log_scan(key_id: str, ip: str, size: int, summary: dict,
                 conn.execute(
                     """INSERT INTO scans
                        (ts, key_id, ip_hash, size, findings,
-                        critical, high, medium, low, duration_ms, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        critical, high, medium, low, duration_ms, status, owner_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (_now_iso(),
                      key_id, hash_ip(ip), size,
                      total,
@@ -104,7 +108,7 @@ def log_scan(key_id: str, ip: str, size: int, summary: dict,
                      int(summary.get('high', 0)),
                      int(summary.get('medium', 0)),
                      int(summary.get('low', 0)),
-                     int(duration_ms), status),
+                     int(duration_ms), status, owner_id),
                 )
                 conn.commit()
             finally:
@@ -171,6 +175,23 @@ def export_recent(limit: int = 50) -> list:
                 rows = conn.execute(
                     "SELECT ts, key_id, ip_hash, size, findings, duration_ms, status "
                     "FROM scans ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+                return [dict(r) for r in rows]
+            finally:
+                conn.close()
+    except Exception:
+        return []
+
+
+def get_user_scans(owner_id: int, limit: int = 20) -> list:
+    """Ultimele scan-uri ale UNUI user (owner-scoping). Fara cod, fara IP real."""
+    try:
+        with _lock:
+            conn = _connect()
+            try:
+                rows = conn.execute(
+                    "SELECT ts, key_id, size, findings, duration_ms, status "
+                    "FROM scans WHERE owner_id = ? ORDER BY id DESC LIMIT ?",
+                    (owner_id, limit)).fetchall()
                 return [dict(r) for r in rows]
             finally:
                 conn.close()
