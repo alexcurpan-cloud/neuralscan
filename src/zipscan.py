@@ -33,6 +33,8 @@ MAX_ZIP_BYTES = 5 * 1024 * 1024       # zip brut max 5MB
 MAX_TOTAL_UNCOMPRESSED = 15 * 1024 * 1024  # 15MB decomprimat
 MAX_FILES = 300
 MAX_FILE_BYTES = 1024 * 1024          # 1MB per fisier
+MAX_FINDINGS_PER_FILE = 100
+MAX_FINDINGS_TOTAL = 500
 
 
 def _is_scannable(name: str) -> bool:
@@ -110,6 +112,14 @@ def scan_zip(data: bytes, zip_name: str = 'repo.zip') -> dict:
                 continue
 
             findings = _scan_content(code, name)
+            # anti-abuz: limiteaza findings per fisier si total
+            if len(findings) > MAX_FINDINGS_PER_FILE:
+                findings = findings[:MAX_FINDINGS_PER_FILE]
+            remaining = MAX_FINDINGS_TOTAL - total_findings
+            if remaining <= 0:
+                break
+            if len(findings) > remaining:
+                findings = findings[:remaining]
             if findings:
                 files_with_findings += 1
             total_findings += len(findings)

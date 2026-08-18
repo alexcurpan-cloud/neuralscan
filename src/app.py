@@ -12,7 +12,6 @@ import os
 import sys
 import json
 import time
-import tempfile
 import traceback
 import hmac
 import hashlib
@@ -51,6 +50,11 @@ app.config['MAX_CONTENT_LENGTH'] = 6 * 1024 * 1024
 # Strat 2: chei in DB (hash, revocabile, per-user) — lookup inainte de legacy env.
 # Legacy: chei din env NEURALSCAN_API_KEYS (comma-separated) — merg in continuare (seed).
 API_KEYS = {k.strip() for k in os.environ.get('NEURALSCAN_API_KEYS', '').split(',') if k.strip()}
+
+# Limite de raspuns (anti-abuz): findings max per scan / per fisier ZIP
+MAX_FINDINGS_PER_SCAN = 200
+MAX_FINDINGS_PER_FILE = 100
+MAX_FINDINGS_TOTAL_ZIP = 500
 
 # Cheie admin pt /stats (separata de cheile de tester — privilege minim).
 ADMIN_KEY = os.environ.get('NEURALSCAN_ADMIN_KEY', '').strip()
@@ -134,6 +138,7 @@ def security_headers(resp):
     resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
     resp.headers.setdefault('X-Frame-Options', 'DENY')
     resp.headers.setdefault('Referrer-Policy', 'no-referrer')
+    resp.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     resp.headers.setdefault('Content-Security-Policy',
         "default-src 'self'; style-src 'self' 'unsafe-inline'; "
         "script-src 'self' 'unsafe-inline'; img-src 'self' data:")
@@ -182,20 +187,14 @@ def scan():
 
     start_ms = time.time()
 
-    # Scrie in fisier temp
-    tmp = tempfile.NamedTemporaryFile(
-        mode='w',
-        suffix='.py',
-        delete=False,
-        encoding='utf-8'
-    )
-    tmp_path = tmp.name
     try:
-        tmp.write(code)
-        tmp.close()
-
-        # Ruleaza scannerul
+        # Ruleaza scannerul IN MEMORIE — fara fisier temp (codul nu se scrie pe disk)
         findings = scan_code(code, filename)
+
+        # Anti-abuz: limiteaza findings in raspuns (fara pagini de 100KB+)
+        truncated = len(findings) > MAX_FINDINGS_PER_SCAN
+        if truncated:
+            findings = findings[:MAX_FINDINGS_PER_SCAN]
 
         # Tradu in raport non-dev
         reports = translate_findings(findings, code)
@@ -204,6 +203,7 @@ def scan():
             "status": "ok",
             "file": filename,
             "total": len(findings),
+            "findings_truncated": truncated,
             "summary": {
                 "critical": sum(1 for f in findings if f["severity"] == "critical"),
                 "high": sum(1 for f in findings if f["severity"] == "high"),
@@ -229,13 +229,6 @@ def scan():
             "status": "error",
             "error": "Internal scan error. Please try again with a smaller code sample."
         }), 500
-
-    finally:
-        # Sterge fisierul temp
-        try:
-            os.unlink(tmp_path)
-        except:
-            pass
 
 
 # ─── Scan ZIP / repo (NS-FLOW) ──────────────────────────────────────
@@ -316,8 +309,6 @@ def health():
         "status": "ok",
         "service": "security-scanner",
         "version": "1.0.0",
-        "patterns_secrets": 7,
-        "patterns_code": 9,
     })
 
 

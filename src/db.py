@@ -12,7 +12,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-DATABASE_URL = os.environ.get('NEURALSCAN_DATABASE_URL', '').strip()
+DATABASE_URL = (os.environ.get('NEURALSCAN_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
 USING_PG = DATABASE_URL.startswith('postgresql://') or DATABASE_URL.startswith('postgres://')
 
 # Cale SQLite implicita (aceeasi conventie ca audit.py)

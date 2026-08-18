@@ -104,3 +104,33 @@ def test_filename_valid_still_works():
     c, h = _client()
     r = c.post('/scan', json={'code': 'x = 1', 'filename': 'test.py'}, headers=h)
     assert r.status_code == 200
+
+
+# ─── Launch hardening (audit extern 18-Aug, punct 1) ────────────────
+
+def test_hsts_header_present():
+    """HSTS pe toate raspunsurile (anti-downgrade HTTPS)."""
+    for path in ['/', '/app', '/health']:
+        r = app.test_client().get(path)
+        assert r.headers.get('Strict-Transport-Security', '').startswith('max-age=')
+
+
+def test_health_does_not_leak_pattern_counts():
+    """/health simplificat — fara patterns_secrets/patterns_code (info inutila)."""
+    r = app.test_client().get('/health')
+    body = r.get_json()
+    assert body['status'] == 'ok'
+    assert 'patterns_secrets' not in body
+    assert 'patterns_code' not in body
+
+
+def test_findings_capped_at_200():
+    """Cod cu sute de probleme -> max 200 findings + flag truncated."""
+    code = '\n'.join(f'API_KEY_{i} = "sk-abcdefghijklmnopqrstuvwxyz{i}"' for i in range(260))
+    c, h = _client()
+    r = c.post('/scan', json={'code': code}, headers=h)
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body['findings_truncated'] is True
+    assert len(body['findings']) <= 200
+    assert body['total'] <= 200
