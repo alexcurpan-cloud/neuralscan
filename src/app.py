@@ -16,6 +16,7 @@ import tempfile
 import traceback
 import hmac
 import hashlib
+from pathlib import Path
 
 from flask import Flask, request, jsonify, render_template_string
 from flask_limiter import Limiter
@@ -741,6 +742,15 @@ codeInput.addEventListener('input', function() {
 
 @app.route('/', methods=['GET'])
 def index():
+    """Landing page EN (marketing) — /app ramane scanner-ul."""
+    landing = Path(__file__).with_name('landing.html')
+    if landing.exists():
+        return landing.read_text(encoding='utf-8')
+    return render_template_string(INDEX_HTML)
+
+
+@app.route('/app', methods=['GET'])
+def scanner_ui():
     return render_template_string(INDEX_HTML)
 
 

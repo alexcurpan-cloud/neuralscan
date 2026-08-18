@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralScan — Security scan for AI-built apps</title>
+<meta name="description" content="Before you ship your AI-built app, NeuralScan finds exposed secrets and dangerous code — then tells you exactly what to ask your AI to fix.">
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --critical: #f85149;
+    --high: #d29922;
+    --medium: #58a6ff;
+    --low: #3fb950;
+    --accent: #2f81f7;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 0; border-bottom: 1px solid var(--border);
+  }
+  .logo { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+  .logo span { color: var(--accent); }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
+  nav a:hover { color: var(--text); }
+
+  /* Hero */
+  .hero { padding: 80px 0 48px; text-align: center; }
+  .badge {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    background: rgba(63,185,80,0.12); color: var(--low);
+    font-size: 0.8rem; font-weight: 600; margin-bottom: 20px;
+    border: 1px solid rgba(63,185,80,0.3);
+  }
+  h1 { font-size: 2.6rem; line-height: 1.2; margin-bottom: 18px; font-weight: 800; }
+  h1 .hl { color: var(--accent); }
+  .subtitle { font-size: 1.15rem; color: var(--muted); max-width: 700px; margin: 0 auto 32px; }
+  .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 14px 30px; border-radius: var(--radius);
+    font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--text); }
+
+  /* Proof strip */
+  .proof { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 28px; text-align: center; min-width: 180px;
+  }
+  .stat .num { font-size: 1.8rem; font-weight: 800; }
+  .stat .lbl { color: var(--muted); font-size: 0.85rem; }
+  .num.red { color: var(--critical); }
+  .num.green { color: var(--low); }
+  .num.blue { color: var(--accent); }
+
+  /* Sections */
+  section { padding: 64px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 1.8rem; margin-bottom: 12px; text-align: center; }
+  .sec-sub { color: var(--muted); text-align: center; margin-bottom: 40px; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .step {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px;
+  }
+  .step .n {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; margin-bottom: 14px;
+  }
+  .step h3 { font-size: 1.05rem; margin-bottom: 8px; }
+  .step p { color: var(--muted); font-size: 0.92rem; }
+
+  /* Demo card */
+  .demo { display: flex; justify-content: center; margin-top: 32px; }
+  .demo img {
+    max-width: 620px; width: 100%; border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  /* Pricing */
+  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .plan {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; display: flex; flex-direction: column;
+  }
+  .plan.featured { border-color: var(--accent); }
+  .plan .pname { font-weight: 700; margin-bottom: 6px; }
+  .plan .price { font-size: 2rem; font-weight: 800; margin-bottom: 16px; }
+  .plan .price small { font-size: 0.9rem; color: var(--muted); font-weight: 400; }
+  .plan ul { list-style: none; margin-bottom: 20px; flex: 1; }
+  .plan li { padding: 6px 0; color: var(--muted); font-size: 0.92rem; }
+  .plan li::before { content: "✓ "; color: var(--low); font-weight: 700; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 700px) {
+    h1 { font-size: 1.9rem; }
+    .hero { padding: 48px 0 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <div class="logo">🔍 Neural<span>Scan</span></div>
+    <div>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/app">Open scanner</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="badge">Built for AI-generated apps · Lovable · Bolt · Cursor · Replit</div>
+    <h1>Before you ship your AI-built app,<br><span class="hl">check if it's safe.</span></h1>
+    <p class="subtitle">
+      NeuralScan finds exposed secrets and dangerous code in your app —
+      then tells you, in plain language, exactly what to ask your AI to fix.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/app">Scan my app — free</a>
+      <a class="btn btn-outline" href="#how">See how it works</a>
+    </div>
+
+    <div class="proof">
+      <div class="stat"><div class="num green">0</div><div class="lbl">vulnerabilities on our own code (dogfood)</div></div>
+      <div class="stat"><div class="num red">SQLi</div><div class="lbl">found &amp; confirmed on a test app, live</div></div>
+      <div class="stat"><div class="num blue">$3</div><div class="lbl">average AI deep-scan cost</div></div>
+    </div>
+  </header>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sec-sub">You built it fast with AI. We check it before you break it — on the internet.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <h3>Paste or upload your code</h3>
+        <p>Your app, your code. Nothing is stored — we only keep metadata about the scan.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h3>AI agents scan it</h3>
+        <p>Static checks for exposed secrets &amp; dangerous patterns, plus optional deep validation by an AI security agent.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h3>You get a plain-language report</h3>
+        <p>What's wrong, how bad it is, and a fix prompt you can hand straight back to your AI.</p>
+      </div>
+    </div>
+    <div class="demo">
+      <img src="/static/demo_card.png" alt="NeuralScan demo report — SQL injection confirmed">
+    </div>
+  </section>
+
+  <section id="pricing">
+    <h2>Pricing</h2>
+    <p class="sec-sub">Start free. Pay when you ship something real.</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="pname">Free</div>
+        <div class="price">$0<small>/forever</small></div>
+        <ul>
+          <li>1 static scan</li>
+          <li>Plain-language summary</li>
+          <li>No credit card</li>
+        </ul>
+        <a class="btn btn-outline" href="/app">Try free</a>
+      </div>
+      <div class="plan featured">
+        <div class="pname">Pro</div>
+        <div class="price">$19<small>/month</small></div>
+        <ul>
+          <li>Unlimited static scans</li>
+          <li>Full reports + fix prompts</li>
+          <li>Scan history</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="btn btn-primary" href="/app">Get Pro</a>
+      </div>
+      <div class="plan">
+        <div class="pname">Deep Scan</div>
+        <div class="price">Credits<small>or $49–99/mo</small></div>
+        <ul>
+          <li>AI security agent validation</li>
+          <li>Real exploit attempts, not just patterns</li>
+          <li>Explicit usage limits</li>
+        </ul>
+        <a class="btn btn-outline" href="/app">Contact us</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>NeuralScan — security for the AI-built generation.</p>
+    <p><a href="/app">Open the scanner</a> · <a href="/health">Status</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
