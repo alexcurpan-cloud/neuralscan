@@ -30,6 +30,7 @@ from scanner import scan_code
 from translator import translate_findings
 import audit
 import keys
+import zipscan
 
 audit.init_db()
 keys.init_db()
@@ -42,8 +43,9 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 # ─── Securitate: limite de bază (Strat 0) ───────────────────────────
-# Anti-DoS: dimensiune maximă request 100KB
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024
+# Anti-DoS: request max 6MB (ZIP upload pana la 5MB); /scan JSON pastreaza capul
+# de 100KB la nivel de cod (len(code) > 100_000 -> 413).
+app.config['MAX_CONTENT_LENGTH'] = 6 * 1024 * 1024
 
 # ─── Auth: API keys (Strat 1 + Strat 2) ───────────────────────────
 # Strat 2: chei in DB (hash, revocabile, per-user) — lookup inainte de legacy env.
@@ -113,7 +115,7 @@ limiter = Limiter(
 
 @app.errorhandler(413)
 def too_large(e):
-    return jsonify({"error": "Request too large — maximum 100KB."}), 413
+    return jsonify({"error": "Request too large — maximum 6MB (sau 100KB pt /scan JSON)."}), 413
 
 
 @app.errorhandler(429)
@@ -234,6 +236,40 @@ def scan():
             os.unlink(tmp_path)
         except:
             pass
+
+
+# ─── Scan ZIP / repo (NS-FLOW) ──────────────────────────────────────
+
+@app.route('/scan/zip', methods=['POST'])
+@limiter.limit(lambda: _rate_limit_str(), key_func=_auth_bucket)
+def scan_zip_route():
+    """Primeste ZIP (multipart, campul 'file') si scaneaza recursiv fisierele de cod.
+    Zip-slip protection + limite de dimensiune in zipscan.py."""
+    if _request_key() and not _has_valid_key():
+        return jsonify({"error": "Invalid API key. Pass X-API-Key header."}), 401
+    if 'file' not in request.files:
+        return jsonify({"error": "Trimite fisierul ZIP in campul 'file'."}), 400
+    f = request.files['file']
+    data = f.read()
+    if not data:
+        return jsonify({"error": "Fisier gol."}), 400
+
+    start_ms = time.time()
+    try:
+        result = zipscan.scan_zip(data, f.filename or 'repo.zip')
+        audit.log_scan(_current_key_id(), request.remote_addr, len(data),
+                       result["summary"], int((time.time() - start_ms) * 1000), 'ok',
+                       owner_id=keys.owner_id_for_key(_request_key()))
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        app.logger.error("zip scan failed: %s", e)
+        audit.log_scan(_current_key_id(), request.remote_addr, len(data),
+                       {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0},
+                       int((time.time() - start_ms) * 1000), 'error',
+                       owner_id=keys.owner_id_for_key(_request_key()))
+        return jsonify({"error": "Internal scan error."}), 500
 
 
 # ─── Stats (admin only) ──────────────────────────────────────────────
@@ -524,6 +560,8 @@ INDEX_HTML = r"""
 
   <div class="toolbar">
     <button class="btn btn-primary" id="scanBtn" onclick="scan()">Check</button>
+    <button class="btn btn-outline" onclick="document.getElementById('zipInput').click()">📦 Scan ZIP</button>
+    <input type="file" id="zipInput" accept=".zip" style="display:none" onchange="scanZip(event)">
     <button class="btn btn-outline" onclick="clearAll()">✕ Clear</button>
     <button class="btn btn-outline" onclick="loadExample()">Example</button>
     <span id="statusText" style="color:var(--muted);font-size:0.85rem;margin-left:auto;"></span>
@@ -727,6 +765,69 @@ function copyFix(idx) {
     setTimeout(() => { if (copiedSpan) copiedSpan.style.display = 'none'; }, 2000);
     showToast('📋 Prompt copied!');
   });
+}
+
+// ─── ZIP upload scan (NS-FLOW) ─────────────────────────────────────
+async function scanZip(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const scanBtn = document.getElementById('scanBtn');
+  scanBtn.disabled = true;
+  statusText.textContent = 'Scanning ZIP: ' + file.name + '...';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/scan/zip', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      resultsDiv.innerHTML = `<div class="empty">❌ Error: ${escapeHtml(data.error) || 'unknown'}</div>`;
+      statusText.textContent = 'Error';
+      return;
+    }
+    renderZipResults(data);
+  } catch (err) {
+    resultsDiv.innerHTML = `<div class="empty">❌ Network error: ${err.message}</div>`;
+    statusText.textContent = 'Error';
+  } finally {
+    scanBtn.disabled = false;
+    event.target.value = '';
+  }
+}
+
+function renderZipResults(data) {
+  const { files_scanned, files_with_findings, total, summary = {}, findings_by_file = [] } = data;
+
+  let statsHtml = '<div class="stats">';
+  statsHtml += `<div class="stat">Files: <strong>${files_scanned}</strong></div>`;
+  statsHtml += `<div class="stat">With issues: <strong>${files_with_findings}</strong></div>`;
+  statsHtml += `<div class="stat">Total issues: <strong>${total}</strong></div>`;
+  if (summary.critical) statsHtml += `<div class="stat">🔴 Critical: <strong>${summary.critical}</strong></div>`;
+  if (summary.high) statsHtml += `<div class="stat">🟠 High: <strong>${summary.high}</strong></div>`;
+  statsHtml += '</div>';
+  statsDiv.innerHTML = statsHtml;
+
+  let html = '';
+  if (total === 0) {
+    html = `<div class="empty">✅ No issues detected across ${files_scanned} file(s). Looks clean!</div>`;
+  } else {
+    findings_by_file.forEach((fb, fi) => {
+      if (fb.count === 0) return;
+      const sev = fb.findings[0]?.severity || 'medium';
+      const sevLabel = fb.findings[0]?.severity || '';
+      html += `<div class="card ${sev}">
+        <div class="card-header">
+          <div class="card-title">📄 ${escapeHtml(fb.file)}</div>
+          <span class="badge ${sev}">${fb.count} issue(s)</span>
+        </div>
+        <div class="card-body">`;
+      fb.report.forEach((r, ri) => {
+        html += `<p style="margin-bottom:4px;"><span class="badge ${r.severity_raw}">${escapeHtml(r.severity)}</span> ${escapeHtml(r.titlu)} <span class="card-meta">line ${r.line}</span></p>`;
+      });
+      html += `</div></div>`;
+    });
+  }
+  resultsDiv.innerHTML = html;
+  statusText.textContent = `✅ ${files_with_findings}/${files_scanned} file(s) with issues — ${total} total`;
 }
 
 // Auto-height textarea
