@@ -1,24 +1,30 @@
 """
-audit.py — Audit log persistent (SQLite) pentru NeuralScan.
+audit.py — Audit log persistent (SQLite/Postgres) pentru NeuralScan.
 
 Doar METADATE: cine (key_id), cand, marime, rezultate, durata.
 NU stocam codul scanat (e al clientului) si NU stocam IP in clar (doar hash).
 
-Schema gandita sa migreze usor pe Postgres (Strat 2 / monetizare):
-    scans(id, ts, key_id, ip_hash, size, findings, critical, high, medium, low,
-          duration_ms, status)
+DB: SQLite local/test (NEURALSCAN_DB), Postgres in productie (NEURALSCAN_DATABASE_URL).
+Schema identica pe ambele; placeholder-urile `?` se traduc prin db.q().
 """
 
 import hashlib
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-# BD locala (efemera pe Railway la redeploy — OK pt etapa actuala; migrare Postgres cand avem trafic)
+# asigura ca src/ e in path (audit poate fi importat direct, nu doar prin app.py)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import db
+from db import USING_PG, q as _q, table_columns as _table_columns
+
+# BD locala (SQLite). Postgres = NEURALSCAN_DATABASE_URL (vezi db.py)
 DB_PATH = Path(os.environ.get('NEURALSCAN_DB', str(Path(__file__).resolve().parent.parent / 'audit.db')))
 
 # Sare pt hash IP — previne reverse-engineering pe IPv4 (spatiu mic).
@@ -28,7 +34,7 @@ PEPPER = os.environ.get('NEURALSCAN_AUDIT_PEPPER')
 
 _lock = threading.Lock()
 
-_SCHEMA = """
+_SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS scans (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     ts          TEXT NOT NULL,
@@ -41,11 +47,34 @@ CREATE TABLE IF NOT EXISTS scans (
     medium      INTEGER NOT NULL DEFAULT 0,
     low         INTEGER NOT NULL DEFAULT 0,
     duration_ms INTEGER NOT NULL DEFAULT 0,
-    status      TEXT NOT NULL DEFAULT 'ok'
+    status      TEXT NOT NULL DEFAULT 'ok',
+    owner_id    INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_scans_ts ON scans(ts);
 CREATE INDEX IF NOT EXISTS idx_scans_key ON scans(key_id);
 """
+
+_PG_SCHEMA = """
+CREATE TABLE IF NOT EXISTS scans (
+    id          BIGSERIAL PRIMARY KEY,
+    ts          TEXT NOT NULL,
+    key_id      TEXT NOT NULL,
+    ip_hash     TEXT NOT NULL,
+    size        INTEGER NOT NULL,
+    findings    INTEGER NOT NULL DEFAULT 0,
+    critical    INTEGER NOT NULL DEFAULT 0,
+    high        INTEGER NOT NULL DEFAULT 0,
+    medium      INTEGER NOT NULL DEFAULT 0,
+    low         INTEGER NOT NULL DEFAULT 0,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    status      TEXT NOT NULL DEFAULT 'ok',
+    owner_id    INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_scans_ts ON scans(ts);
+CREATE INDEX IF NOT EXISTS idx_scans_key ON scans(key_id);
+"""
+
+_SCHEMA = _PG_SCHEMA if USING_PG else _SQLITE_SCHEMA
 
 
 def _now_iso() -> str:
@@ -53,10 +82,7 @@ def _now_iso() -> str:
 
 
 def _connect():
-    conn = sqlite3.connect(str(DB_PATH), timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
-    return conn
+    return db.connect()
 
 
 def init_db():
@@ -68,11 +94,15 @@ def init_db():
     with _lock:
         conn = _connect()
         try:
-            conn.executescript(_SCHEMA)
+            # split pe ';' — nici sqlite (execute), nici psycopg nu accepta multi-statement aici
+            for stmt in [s.strip() for s in _SCHEMA.split(';') if s.strip()]:
+                conn.execute(stmt)
             # Migrare Strat 2: coloana owner_id pe scans (legacy = NULL/anonymous)
-            cols = [r['name'] for r in conn.execute('PRAGMA table_info(scans)').fetchall()]
+            cols = _table_columns('scans')
             if 'owner_id' not in cols:
-                conn.execute('ALTER TABLE scans ADD COLUMN owner_id INTEGER')
+                ddl = "ALTER TABLE scans ADD COLUMN IF NOT EXISTS owner_id INTEGER" if USING_PG \
+                    else "ALTER TABLE scans ADD COLUMN owner_id INTEGER"
+                conn.execute(ddl)
             conn.commit()
         finally:
             conn.close()
@@ -96,11 +126,11 @@ def log_scan(key_id: str, ip: str, size: int, summary: dict,
         with _lock:
             conn = _connect()
             try:
-                conn.execute(
+                conn.execute(_q(
                     """INSERT INTO scans
                        (ts, key_id, ip_hash, size, findings,
                         critical, high, medium, low, duration_ms, status, owner_id)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
                     (_now_iso(),
                      key_id, hash_ip(ip), size,
                      total,
@@ -126,27 +156,27 @@ def get_stats(days: int = 14) -> dict:
         with _lock:
             conn = _connect()
             try:
-                total = conn.execute("SELECT COUNT(*) c FROM scans").fetchone()['c']
+                total = conn.execute(_q("SELECT COUNT(*) c FROM scans")).fetchone()['c']
                 since_total = conn.execute(
-                    "SELECT COUNT(*) c FROM scans WHERE ts >= ?", (since,)).fetchone()['c']
+                    _q("SELECT COUNT(*) c FROM scans WHERE ts >= ?"), (since,)).fetchone()['c']
 
                 # Per zi (ultimele `days` zile)
                 daily = conn.execute(
-                    """SELECT substr(ts,1,10) d, COUNT(*) c, SUM(findings) f
-                       FROM scans WHERE ts >= ? GROUP BY d ORDER BY d DESC LIMIT ?""",
+                    _q("""SELECT substr(ts,1,10) d, COUNT(*) c, SUM(findings) f
+                          FROM scans WHERE ts >= ? GROUP BY d ORDER BY d DESC LIMIT ?"""),
                     (since, days)).fetchall()
 
                 # Per cheie
                 by_key = conn.execute(
-                    """SELECT key_id, COUNT(*) c, SUM(findings) f
-                       FROM scans WHERE ts >= ? GROUP BY key_id ORDER BY c DESC""",
+                    _q("""SELECT key_id, COUNT(*) c, SUM(findings) f
+                          FROM scans WHERE ts >= ? GROUP BY key_id ORDER BY c DESC"""),
                     (since,)).fetchall()
 
                 # Erori + durata medie
                 err = conn.execute(
-                    "SELECT COUNT(*) c FROM scans WHERE status != 'ok'").fetchone()['c']
+                    _q("SELECT COUNT(*) c FROM scans WHERE status != 'ok'")).fetchone()['c']
                 avg_ms = conn.execute(
-                    "SELECT AVG(duration_ms) a FROM scans WHERE status='ok'").fetchone()['a'] or 0
+                    _q("SELECT AVG(duration_ms) a FROM scans WHERE status='ok'")).fetchone()['a'] or 0
 
                 return {
                     "total_all_time": total,
@@ -155,8 +185,8 @@ def get_stats(days: int = 14) -> dict:
                     "daily": [{"date": r['d'], "scans": r['c'], "findings": r['f'] or 0} for r in daily],
                     "by_key": [{"key": r['key_id'], "scans": r['c'], "findings": r['f'] or 0} for r in by_key],
                     "errors": err,
-                    "avg_duration_ms": round(avg_ms, 1),
-                    "db": str(DB_PATH.name),
+                    "avg_duration_ms": round(float(avg_ms), 1),
+                    "db": "postgres" if USING_PG else str(DB_PATH.name),
                 }
             finally:
                 conn.close()
@@ -173,8 +203,8 @@ def export_recent(limit: int = 50) -> list:
             conn = _connect()
             try:
                 rows = conn.execute(
-                    "SELECT ts, key_id, ip_hash, size, findings, duration_ms, status "
-                    "FROM scans ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+                    _q("SELECT ts, key_id, ip_hash, size, findings, duration_ms, status "
+                       "FROM scans ORDER BY id DESC LIMIT ?"), (limit,)).fetchall()
                 return [dict(r) for r in rows]
             finally:
                 conn.close()
@@ -189,8 +219,8 @@ def get_user_scans(owner_id: int, limit: int = 20) -> list:
             conn = _connect()
             try:
                 rows = conn.execute(
-                    "SELECT ts, key_id, size, findings, duration_ms, status "
-                    "FROM scans WHERE owner_id = ? ORDER BY id DESC LIMIT ?",
+                    _q("SELECT ts, key_id, size, findings, duration_ms, status "
+                       "FROM scans WHERE owner_id = ? ORDER BY id DESC LIMIT ?"),
                     (owner_id, limit)).fetchall()
                 return [dict(r) for r in rows]
             finally:

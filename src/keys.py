@@ -1,10 +1,7 @@
 """
-keys.py — Strat 2 minimal: users + API keys (hash) + revocare + ownership.
+keys.py — Strat 2: users + API keys (hash) + revocare + ownership.
 
-Tabele:
-  users(id, email UNIQUE, plan TEXT DEFAULT 'free', created_at)
-  api_keys(id, user_id FK, key_hash UNIQUE, key_prefix, rate_limit, revoked, created_at)
-  scans.owner_id — coloana se adauga prin migrare in audit.py
+DB: SQLite local/test, Postgres in productie (prin db.py).
 
 Reguli:
   - Cheia se stocheaza DOAR ca SHA-256 hash; plaintext-ul se afiseaza o singura data.
@@ -15,9 +12,16 @@ import hashlib
 import os
 import secrets
 import sqlite3
+import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+
+# asigura ca src/ e in path (keys poate fi importat direct)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import db
+from db import USING_PG, q as _q, table_columns as _table_columns
 
 DB_PATH = Path(os.environ.get('NEURALSCAN_DB', str(Path(__file__).resolve().parent.parent / 'audit.db')))
 
@@ -28,7 +32,7 @@ PLAN_RATE_LIMITS = {
 
 _lock = threading.Lock()
 
-_SCHEMA = """
+_SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     email       TEXT NOT NULL UNIQUE,
@@ -48,16 +52,35 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
 """
 
+_PG_SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id          BIGSERIAL PRIMARY KEY,
+    email       TEXT NOT NULL UNIQUE,
+    plan        TEXT NOT NULL DEFAULT 'free',
+    created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS api_keys (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id),
+    key_hash    TEXT NOT NULL UNIQUE,
+    key_prefix  TEXT NOT NULL,
+    rate_limit  INTEGER NOT NULL DEFAULT 30,
+    revoked     INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+"""
+
+_SCHEMA = _PG_SCHEMA if USING_PG else _SQLITE_SCHEMA
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
 
 
 def _connect():
-    conn = sqlite3.connect(str(DB_PATH), timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
-    return conn
+    return db.connect()
 
 
 def init_db():
@@ -65,7 +88,9 @@ def init_db():
     with _lock:
         conn = _connect()
         try:
-            conn.executescript(_SCHEMA)
+            # split pe ';' — psycopg nu suporta executescript
+            for stmt in [s.strip() for s in _SCHEMA.split(';') if s.strip()]:
+                conn.execute(stmt)
             conn.commit()
         finally:
             conn.close()
@@ -81,11 +106,12 @@ def _get_or_create_user(email: str, plan: str = 'free'):
     with _lock:
         conn = _connect()
         try:
-            conn.execute(
-                "INSERT OR IGNORE INTO users (email, plan, created_at) VALUES (?, ?, ?)",
+            conn.execute(_q(
+                "INSERT INTO users (email, plan, created_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(email) DO NOTHING"),
                 (email, plan, _now_iso()))
             conn.commit()
-            row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            row = conn.execute(_q("SELECT id FROM users WHERE email = ?"), (email,)).fetchone()
             return row['id']
         finally:
             conn.close()
@@ -103,9 +129,9 @@ def create_key(email: str, plan: str = 'free') -> dict:
     with _lock:
         conn = _connect()
         try:
-            conn.execute(
+            conn.execute(_q(
                 "INSERT INTO api_keys (user_id, key_hash, key_prefix, rate_limit, created_at) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?)"),
                 (user_id, key_hash, key_prefix, rate_limit, _now_iso()))
             conn.commit()
         finally:
@@ -127,11 +153,11 @@ def lookup_by_key(plaintext: str):
     with _lock:
         conn = _connect()
         try:
-            row = conn.execute(
+            row = conn.execute(_q(
                 "SELECT k.id AS key_id, k.key_prefix, k.rate_limit, k.revoked, "
                 "       u.id AS user_id, u.email, u.plan "
                 "FROM api_keys k JOIN users u ON u.id = k.user_id "
-                "WHERE k.key_hash = ?", (key_hash,)).fetchone()
+                "WHERE k.key_hash = ?"), (key_hash,)).fetchone()
             if row is None or row['revoked']:
                 return None
             return dict(row)
@@ -144,8 +170,8 @@ def revoke_key(key_prefix: str) -> bool:
     with _lock:
         conn = _connect()
         try:
-            cur = conn.execute(
-                "UPDATE api_keys SET revoked = 1 WHERE key_prefix = ? AND revoked = 0",
+            cur = conn.execute(_q(
+                "UPDATE api_keys SET revoked = 1 WHERE key_prefix = ? AND revoked = 0"),
                 (key_prefix,))
             conn.commit()
             return cur.rowcount > 0
@@ -157,8 +183,8 @@ def revoke_key_by_id(key_id: int) -> bool:
     with _lock:
         conn = _connect()
         try:
-            cur = conn.execute(
-                "UPDATE api_keys SET revoked = 1 WHERE id = ? AND revoked = 0", (key_id,))
+            cur = conn.execute(_q(
+                "UPDATE api_keys SET revoked = 1 WHERE id = ? AND revoked = 0"), (key_id,))
             conn.commit()
             return cur.rowcount > 0
         finally:
@@ -170,11 +196,11 @@ def list_keys() -> list:
     with _lock:
         conn = _connect()
         try:
-            rows = conn.execute(
+            rows = conn.execute(_q(
                 "SELECT k.id, k.key_prefix, k.rate_limit, k.revoked, k.created_at, "
                 "       u.email, u.plan "
                 "FROM api_keys k JOIN users u ON u.id = k.user_id "
-                "ORDER BY k.id").fetchall()
+                "ORDER BY k.id")).fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()
@@ -198,12 +224,12 @@ def seed_legacy_env_keys(env_keys: str):
         try:
             for k in keys:
                 key_hash = _hash_key(k)
-                exists = conn.execute(
-                    "SELECT 1 FROM api_keys WHERE key_hash = ?", (key_hash,)).fetchone()
+                exists = conn.execute(_q(
+                    "SELECT 1 FROM api_keys WHERE key_hash = ?"), (key_hash,)).fetchone()
                 if not exists:
-                    conn.execute(
+                    conn.execute(_q(
                         "INSERT INTO api_keys (user_id, key_hash, key_prefix, rate_limit, created_at) "
-                        "VALUES (?, ?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?)"),
                         (user_id, key_hash, k[:8], PLAN_RATE_LIMITS['free'], _now_iso()))
                     seeded += 1
             conn.commit()
@@ -215,4 +241,4 @@ def seed_legacy_env_keys(env_keys: str):
 if __name__ == '__main__':
     # Utilizare CLI minimala (vezi keymgmt.py pentru comenzi complete)
     init_db()
-    print("keys.py OK — DB:", DB_PATH)
+    print("keys.py OK — DB:", "postgres" if USING_PG else DB_PATH)

@@ -45,9 +45,13 @@ def _scan(code, key=TEST_KEY):
 
 def _clean_db():
     import sqlite3
-    conn = sqlite3.connect(str(audit.DB_PATH))
+    # db.py onoreaza env-ul (NEURALSCAN_DB) — curatam DB-ul ACTIV, nu vechiul DB_PATH
+    path = os.environ.get('NEURALSCAN_DB', str(audit.DB_PATH))
+    conn = sqlite3.connect(str(path))
     try:
         conn.execute('DELETE FROM scans')
+        conn.execute('DELETE FROM api_keys')
+        conn.execute('DELETE FROM users')
         conn.commit()
     finally:
         conn.close()
