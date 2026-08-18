@@ -134,6 +134,11 @@ def scan():
     if not isinstance(code, str):
         return jsonify({"error": "Campul 'code' trebuie sa fie string."}), 400
 
+    # FIX securitate: filename non-string / urias -> 400 (nu crash -> 500).
+    # (scanner.py il foloseste in _is_batch_eval_context: filename.lower())
+    if not isinstance(filename, str) or len(filename) > 255:
+        return jsonify({"error": "Campul 'filename' trebuie sa fie string (max 255 chars)."}), 400
+
     if len(code) > 100_000:
         return jsonify({"error": "Code too large — maximum 100KB."}), 413
 

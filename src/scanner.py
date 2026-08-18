@@ -224,14 +224,14 @@ CODE_PATTERNS = [
         "severity": "critical",
         "confidence": "high",
         "description": "SQL query construit cu format() — la fel de periculos ca concatenarea.",
-        "pattern": re.compile(r'(?:execute|cursor\.execute|query|raw_query)\s*\(\s*[\'\"].*%[sd].*[\'\"]\s*%(?!\s*[\'\"]\))', re.IGNORECASE),
+        "pattern": re.compile(r'(?:execute|cursor\.execute|query|raw_query)\s*\(\s*[\'\"][^\'\"]*%[sd][^\'\"]*[\'\"]\s*%(?!\s*[\'\"])', re.IGNORECASE),
     },
     {
         "type": "command_injection",
         "severity": "critical",
         "confidence": "high",
         "description": "Comanda shell construita dinamic — injectie shell posibila. Atacatorul poate rula comenzi pe server.",
-        "pattern": re.compile(r'(?:os\.system|subprocess\.(?:call|Popen|run)|exec)\s*\([^)]*(?:f[\'\"]|[\'\"]\s*\+)', re.IGNORECASE),
+        "pattern": re.compile(r'(?:os\.system|subprocess\.(?:call|Popen|run)|exec)\s*\([^)]{0,200}?(?:f[\'\"]|[\'\"]\s*\+)', re.IGNORECASE),
     },
     {
         "type": "eval_usage",
@@ -266,14 +266,14 @@ CODE_PATTERNS = [
         "severity": "low",
         "confidence": "medium",
         "description": "Conexiune HTTP in loc de HTTPS — trafic necriptat, usor de interceptat.",
-        "pattern": re.compile(r'http://[^\s\'\"{}]+\.(?:com|ro|org|net|io)', re.IGNORECASE),
+        "pattern": re.compile(r'http://[^\s\'\"{}/:?#]+\.(?:com|ro|org|net|io)', re.IGNORECASE),
     },
     {
         "type": "hardcoded_debug",
         "severity": "high",
         "confidence": "high",
         "description": "Debug mode + host 0.0.0.0 activ in productie — Werkzeug debugger permite RCE (Remote Code Execution). Atacatorul poate obtine shell pe server.",
-        "pattern": re.compile(r'(?:debug\s*=\s*True|DEBUG\s*=\s*True|app\.run\(.*debug\s*=\s*True)', re.IGNORECASE),
+        "pattern": re.compile(r'(?:debug\s*=\s*True|DEBUG\s*=\s*True|app\.run\([^()]*debug\s*=\s*True)', re.IGNORECASE),
     },
 ]
 
