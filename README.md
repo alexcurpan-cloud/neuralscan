@@ -2,7 +2,8 @@
 
 > 1 in 3 AI-generated projects (Cursor, Lovable, Bolt, Claude Code) ships with exposed secrets or security vulnerabilities. NeuralScan catches them and explains how to fix them — in plain English.
 
-[![Tests](https://img.shields.io/badge/tests-36%2F36-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
+[![Tests](https://img.shields.io/badge/tests-84%2F84-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
+[![CI](https://github.com/alexcurpan-cloud/neuralscan/actions/workflows/tests.yml/badge.svg)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/live-railway-success)](https://neuralscan-production.up.railway.app)
@@ -70,7 +71,9 @@ Developers already have `gitleaks` + `semgrep`. NeuralScan's edge = **translatio
 3. **Translate**: each finding is mapped to a plain-language explanation + fix prompt
 4. **Output**: severity badge, code snippet, explanation, and a one-click fix prompt
 
-> All scanning happens locally. Nothing is stored or sent to any third party.
+> **Privacy (honest):** scanning happens on the NeuralScan server (Railway) — your code is
+> **sent to our server for scanning and never stored**. We do not keep your code, do not train
+> on it, and do not share it. Metadata-only audit (key id, size, counts, duration) — never the code.
 
 ---
 
@@ -177,10 +180,16 @@ Open `http://localhost:5050` — dark theme, paste your code, click **Check**, r
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Web UI |
+| `/` | GET | Landing page (marketing, EN) |
+| `/app` | GET | Scanner UI |
 | `/scan` | POST | Scan code — body: `{ "code": "...", "filename": "optional.py" }` |
-| `/health` | GET | Server status |
+| `/scan/zip` | POST | Scan a ZIP/repo (multipart `file`) — per-file + aggregate report |
+| `/user/scans` | GET | Your scan history — requires valid DB API key (`X-API-Key`) |
+| `/admin/keys` | POST | Create an API key — requires `X-Admin-Key` (plaintext shown once) |
+| `/admin/keys/revoke` | POST | Revoke a key by prefix — immediate 401 |
+| `/admin/keys` | GET | List keys (prefix + status only) — requires `X-Admin-Key` |
 | `/stats` | GET | Audit stats (aggregate) — requires `X-Admin-Key` header |
+| `/health` | GET | Server status |
 
 ### Audit log (v2)
 
@@ -218,10 +227,13 @@ to the admin key only — never to testers.
 
 ```bash
 python -m pytest tests/ -v
-# 36 passed in 0.52s
+# 84 passed (scanner, security hardening, audit, keys, ZIP scan, admin API)
 ```
 
-Covers: all 7 detection categories, clean code (zero false positives), edge cases (namespace URLs, batch eval, parameterized queries), translator output format, file scanning, deduplication.
+Covers: all 7 detection categories, clean code (zero false positives), edge cases (namespace URLs,
+batch eval, parameterized queries), translator output format, file scanning, deduplication,
+ReDoS hardening, Strat 2 keys (hash-only storage, revoke, owner-scoping), ZIP scan (zip-slip safe),
+admin keys API. CI runs the suite on every push/PR (GitHub Actions).
 
 ---
 
@@ -240,14 +252,16 @@ See [`docs/deploy.md`](docs/deploy.md) for detailed instructions.
 
 ## Roadmap
 
-- [x] MVP — 7 categories, 36 tests, plain-English reports
+- [x] MVP — 7 categories, plain-English reports
 - [x] Derisk — validated on real projects, zero false positives
 - [x] Live deploy — Railway (stable URL: neuralscan-production.up.railway.app)
-- [ ] File upload (zip / directory scan)
-- [ ] GitHub repo scan (public repos)
-- [ ] CI/CD integration (GitHub Action)
+- [x] ZIP upload scan (zip-slip safe, per-file report)
+- [x] Strat 2 — users + hashed keys + revoke + owner-scoping + admin API
+- [x] Postgres (durable keys/audit)
+- [x] CI/CD — GitHub Actions on push/PR + Railway auto-deploy
 - [x] Waitlist — Tally form live
-- [ ] Monetization — freemium tier
+- [ ] GitHub repo scan (public repos)
+- [ ] Monetization — freemium tier (Stripe)
 
 ---
 
