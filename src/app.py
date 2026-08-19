@@ -56,8 +56,16 @@ MAX_FINDINGS_PER_SCAN = 200
 MAX_FINDINGS_PER_FILE = 100
 MAX_FINDINGS_TOTAL_ZIP = 500
 
-# Cheie admin pt /stats (separata de cheile de tester — privilege minim).
+# Cheie admin pt /stats + /admin/* (separata de cheile de tester — privilege minim).
 ADMIN_KEY = os.environ.get('NEURALSCAN_ADMIN_KEY', '').strip()
+
+
+def _is_admin() -> bool:
+    """Verifica X-Admin-Key cu comparatie constant-time (hmac.compare_digest)."""
+    if not ADMIN_KEY:
+        return False
+    sent = (request.headers.get('X-Admin-Key', '') or '').encode('utf-8')
+    return hmac.compare_digest(sent, ADMIN_KEY.encode('utf-8'))
 
 
 def _request_key() -> str:
@@ -273,9 +281,7 @@ def stats():
     """Statistici agregate de folosire. Doar cu cheie admin (X-Admin-Key).
     Returneaza metadate (numar scan-uri, pe zi, pe cheie) — NICIODATA cod scanat,
     nici IP real (doar hash)."""
-    if not ADMIN_KEY or not hmac.compare_digest(
-            (request.headers.get('X-Admin-Key', '') or '').encode('utf-8'),
-            ADMIN_KEY.encode('utf-8')):
+    if not _is_admin():
         return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
     days = request.args.get('days', 14, type=int)
     days = max(1, min(days, 90))
@@ -299,6 +305,69 @@ def user_scans():
         "plan": info["plan"],
         "scans": audit.get_user_scans(info["user_id"], limit),
     })
+
+
+# ─── Admin: key management (NS-PG fix — creare chei in prod via HTTP) ──
+# De ce: `railway run` nu tunelizeaza postgres.railway.internal pe CLI-ul curent,
+# deci keymgmt-ul local nu poate crea chei in Postgres-ul de productie.
+# Aceste endpoint-uri ruleaza IN INTERIOR (URL intern OK) si folosesc X-Admin-Key
+# (aceeasi cheie ca /stats — privilege minim, separata de cheile de tester).
+
+@app.route('/admin/keys', methods=['POST'])
+@limiter.limit("10 per minute")
+def admin_create_key():
+    """Creeaza o cheie API pt un user. Body: { "email": "...", "plan": "free|pro" }.
+    Returneaza plaintext-ul O SINGURA DATA — nu se mai poate recupera."""
+    if not _is_admin():
+        return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip()
+    plan = (data.get('plan') or 'free').strip()
+    if not email or '@' not in email or len(email) > 254:
+        return jsonify({"error": "Campul 'email' trebuie sa fie o adresa valida."}), 400
+    if plan not in keys.PLAN_RATE_LIMITS:
+        return jsonify({"error": f"Plan necunoscut: {plan} (alege din {list(keys.PLAN_RATE_LIMITS)})."}), 400
+    try:
+        info = keys.create_key(email, plan)
+    except Exception as e:
+        app.logger.error("admin create key failed: %s", e)
+        return jsonify({"error": "Internal error creating key."}), 500
+    app.logger.info("admin: key created for %s (plan=%s, prefix=%s)", email, plan, info['key_prefix'])
+    return jsonify({
+        "key": info['key'],
+        "key_prefix": info['key_prefix'],
+        "email": info['email'],
+        "plan": info['plan'],
+        "rate_limit": info['rate_limit'],
+        "warning": "Aceasta este singura data cand cheia apare in clar.",
+    }), 201
+
+
+@app.route('/admin/keys/revoke', methods=['POST'])
+@limiter.limit("10 per minute")
+def admin_revoke_key():
+    """Revoca o cheie dupa key_prefix. Body: { "key_prefix": "ns_abc..." }.
+    Revocata = 401 imediat, fara redeploy."""
+    if not _is_admin():
+        return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
+    data = request.get_json(silent=True) or {}
+    prefix = (data.get('key_prefix') or '').strip()
+    if not prefix:
+        return jsonify({"error": "Campul 'key_prefix' este obligatoriu."}), 400
+    ok = keys.revoke_key(prefix)
+    if not ok:
+        return jsonify({"error": f"Nicio cheie activa cu prefixul '{prefix}'."}), 404
+    app.logger.info("admin: key revoked prefix=%s", prefix)
+    return jsonify({"ok": True, "key_prefix": prefix, "revoked": True}), 200
+
+
+@app.route('/admin/keys', methods=['GET'])
+@limiter.limit("10 per minute")
+def admin_list_keys():
+    """Listeaza cheile (doar prefix + stare + owner — NICIODATA hash/plaintext)."""
+    if not _is_admin():
+        return jsonify({"error": "Invalid admin key. Pass X-Admin-Key header."}), 401
+    return jsonify({"keys": keys.list_keys()}), 200
 
 
 # ─── Health ─────────────────────────────────────────────────────────
@@ -853,5 +922,6 @@ if __name__ == '__main__':
     print(f"[OK] NeuralScan pornit pe http://localhost:{port}")
     print(f"   POST /scan   — scaneaza cod")
     print(f"   GET  /health — check stare")
+    print(f"   POST /admin/keys — creare cheie tester (X-Admin-Key)")
     print(f"   GET  /       — frontend")
     app.run(host='0.0.0.0', port=port, debug=False)
