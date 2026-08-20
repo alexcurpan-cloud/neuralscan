@@ -401,11 +401,11 @@ def health():
 
 INDEX_HTML = r"""
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔍 NeuralScan — Scanner de Securitate</title>
+<title>🔍 NeuralScan — Security Scanner</title>
 <style>
   :root {
     --bg: #0d1117;
