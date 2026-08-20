@@ -173,6 +173,22 @@ def scan():
     if _request_key() and not _has_valid_key():
         return jsonify({"error": "Invalid API key. Pass X-API-Key header."}), 401
 
+    # Anti-abuz: cap zilnic per cheie (reset la miezul noptii UTC). Anonimii raman
+    # limitati doar de rate limit per IP (30/min) — nu au cheie de abuzat.
+    key_label = _current_key_id()
+    if key_label != 'anon':
+        _kinfo = _db_key_info()
+        _plan = _kinfo['plan'] if _kinfo else 'free'
+        _limit = keys.daily_limit_for(_plan)
+        _used = keys.daily_scans_used(key_label)
+        if _used >= _limit:
+            return jsonify({
+                "error": f"Daily scan limit reached ({_used}/{_limit} today). "
+                          "Resets at midnight UTC.",
+                "daily_limit": _limit,
+                "daily_used": _used,
+            }), 429
+
     code = data['code']
     filename = data.get('filename', 'input.py')
 

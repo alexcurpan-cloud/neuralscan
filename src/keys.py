@@ -30,6 +30,13 @@ PLAN_RATE_LIMITS = {
     'pro': 300,
 }
 
+# Anti-abuz: cate scanuri are voie o cheie pe ZI (UTC). Scannerul regex e ~0 cost,
+# dar protejeaza CPU-ul si pregateste terenul pt deep-scan (Strix ~$2-4) cand devine expus.
+PLAN_DAILY_LIMITS = {
+    'free': 50,
+    'pro': 500,
+}
+
 _lock = threading.Lock()
 
 _SQLITE_SCHEMA = """
@@ -163,6 +170,33 @@ def lookup_by_key(plaintext: str):
             return dict(row)
         finally:
             conn.close()
+
+
+def daily_scans_used(key_label: str) -> int:
+    """Cate scanuri a facut aceasta cheie azi (UTC).
+
+    key_label = stringul din audit (ex: 'user:email key:prefix'), acelasi pe care
+    il scrie app.py in scans.key_id. 'anon' / gol -> 0 (anonimii au doar rate limit).
+    """
+    if not key_label or key_label == 'anon':
+        return 0
+    start_of_day = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    ).isoformat(timespec='seconds').replace('+00:00', 'Z')
+    with _lock:
+        conn = _connect()
+        try:
+            row = conn.execute(_q(
+                "SELECT COUNT(*) AS n FROM scans WHERE key_id = ? AND ts >= ?"),
+                (key_label, start_of_day)).fetchone()
+            return int(row['n'])
+        finally:
+            conn.close()
+
+
+def daily_limit_for(plan: str) -> int:
+    """Limita zilnica pt plan (fallback la free)."""
+    return PLAN_DAILY_LIMITS.get(plan, PLAN_DAILY_LIMITS['free'])
 
 
 def revoke_key(key_prefix: str) -> bool:
