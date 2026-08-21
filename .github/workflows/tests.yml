@@ -22,3 +22,22 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests -q
+
+  deploy:
+    # Deploy DETERMINISTIC prin CI (fara webhook GitHub, care moare silentios).
+    # Ruleaza DOAR dupa ce testele trec, DOAR pe push la master.
+    # CLI PINUIT la 5.2.0 — v5.3.0+ au bug: `railway up` esueaza cu RAILWAY_TOKEN
+    # (raportat pe Railway Central Station, fix = pin 5.2.0).
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI (pinned 5.2.0)
+        run: npm install -g @railway/cli@5.2.0
+
+      - name: Deploy to Railway
+        run: railway up --detach -s 13286ae9-af67-49a4-9342-9b034b293519 -e 564d6c9d-6fd0-43c9-b0b8-d323afa4454c
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
