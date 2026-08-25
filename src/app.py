@@ -935,9 +935,11 @@ def scanner_ui():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5050))
-    print(f"[OK] NeuralScan pornit pe http://localhost:{port}")
+    # Railway seteaza PORT -> asculta pe 0.0.0.0 (obligatoriu); local fara PORT -> doar 127.0.0.1
+    host = os.environ.get('HOST', '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1')
+    print(f"[OK] NeuralScan pornit pe http://{host}:{port}")
     print(f"   POST /scan   — scaneaza cod")
     print(f"   GET  /health — check stare")
     print(f"   POST /admin/keys — creare cheie tester (X-Admin-Key)")
     print(f"   GET  /       — frontend")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host=host, port=port, debug=False)
