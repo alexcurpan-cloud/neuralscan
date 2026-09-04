@@ -28,8 +28,11 @@ jobs:
     # Ruleaza DOAR dupa ce testele trec, DOAR pe push la master.
     # CLI PINUIT la 5.2.0 — v5.3.0+ au bug: `railway up` esueaza cu RAILWAY_TOKEN
     # (raportat pe Railway Central Station, fix = pin 5.2.0).
+    # ⏸ OPRIT (4-Sep): trial Railway căzut, prod intenționat oprit (day8: validare zero cost).
+    # Re-activare: setează variabila de repo DEPLOY_RAILWAY=true în GitHub → Settings →
+    # Secrets and variables → Actions → Variables, apoi următorul push face deploy.
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEPLOY_RAILWAY == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
