@@ -49,6 +49,7 @@ Here you go — 2 commands and you're running:
 2. Run the scanner:
    - **Mac/Linux:** `python3 neuralscan-cli/neuralscan-cli.py your_file.py`
    - **Windows:** `py neuralscan-cli/neuralscan-cli.py your_file.py` (or `python ...`)
+     *Easiest: drag your file onto `run.bat` ??? that's it.*
 
 **No Python installed?** Fastest path: put your file in a Replit Python repl, upload the zip there, and run `python3 neuralscan-cli/neuralscan-cli.py your_file.py` in the Replit shell ??? nothing to install locally.
 
