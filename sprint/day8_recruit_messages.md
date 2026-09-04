@@ -46,7 +46,11 @@ make sense? what did it miss? DM me if you want to try it — takes 2 minutes.
 Here you go — 2 commands and you're running:
 
 1. `unzip neuralscan-cli.zip`
-2. `python3 neuralscan-cli/neuralscan-cli.py your_file.py` (or a whole folder)
+2. Run the scanner:
+   - **Mac/Linux:** `python3 neuralscan-cli/neuralscan-cli.py your_file.py`
+   - **Windows:** `py neuralscan-cli/neuralscan-cli.py your_file.py` (or `python ...`)
+
+**No Python installed?** Fastest path: put your file in a Replit Python repl, upload the zip there, and run `python3 neuralscan-cli/neuralscan-cli.py your_file.py` in the Replit shell ??? nothing to install locally.
 
 Take a real file from one of your projects — ideally something you suspect is sketchy. Then
 tell me 3 things:
