@@ -68,5 +68,6 @@ No wrong answers — I'm validating whether this is worth building further. Than
 | # | Data | Platformă | User | A rulat pe cod real? | Feedback (3 puncte) | Follow-up? |
 |---|------|-----------|------|----------------------|---------------------|------------|
 |   |      |           |      |                      |                     |            |
+| 3 | 2026-09-05 | Reddit r/ChatGPTCoding (format ??ntrebare) | post LIVE | ??? | ??? | monitorizare |
 | 1 | 2026-09-04 | Reddit r/ReplitBuilders | post LIVE | ??? | ??? | monitorizare |
 | 2 | 2026-09-04 | Discord Lovable (showcase) | post LIVE | ??? | ??? | monitorizare |
