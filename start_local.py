@@ -49,7 +49,8 @@ def main():
         print("[warn] FARA audit pepper — ip_hash dezactivat (vezi audit.py).")
     sys.path.insert(0, os.path.join(HERE, 'src'))
     from src.app import app
-    app.run(host='0.0.0.0', port=port, debug=False)
+    # Securitate: doar local (fix 8-Sep — era 0.0.0.0, expus pe LAN)
+    app.run(host='127.0.0.1', port=port, debug=False)
 
 
 if __name__ == '__main__':
