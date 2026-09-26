@@ -52,9 +52,10 @@ app.config['MAX_CONTENT_LENGTH'] = 6 * 1024 * 1024
 API_KEYS = {k.strip() for k in os.environ.get('NEURALSCAN_API_KEYS', '').split(',') if k.strip()}
 
 # Limite de raspuns (anti-abuz): findings max per scan / per fisier ZIP
+# (MAX_FINDINGS_TOTAL pt ZIP traieste in zipscan.py — sursa unica; duplicatul de aici
+# era nefolosit si putea diverge, scos 2026-09-26)
 MAX_FINDINGS_PER_SCAN = 200
 MAX_FINDINGS_PER_FILE = 100
-MAX_FINDINGS_TOTAL_ZIP = 500
 
 # Cheie admin pt /stats + /admin/* (separata de cheile de tester — privilege minim).
 ADMIN_KEY = os.environ.get('NEURALSCAN_ADMIN_KEY', '').strip()

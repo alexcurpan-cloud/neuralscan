@@ -28,17 +28,17 @@ class Finding:
     confidence: str    # "high" | "medium" | "low"
 
 
+# Rang real de severitate (sortare 2026-09-26: înainte se sorta alfabetic →
+# 'low' apărea înaintea lui 'medium').
+SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
 # ─── Secret patterns ────────────────────────────────────────────────
 
+# ORDINEA CONTEAZA (fix 2026-09-26): pattern-urile SPECIFICE (prefix de provider)
+# vin INAINTE de cele generice. Un match acoperit de un pattern mai specific nu mai
+# e raportat de generic (ex: GitHub PAT nu mai apare ca "hardcoded_password").
 SECRET_PATTERNS = [
-    # OpenAI / Anthropic / generic API keys
-    {
-        "type": "hardcoded_api_key",
-        "severity": "critical",
-        "confidence": "high",
-        "description": "Hardcodat API key — orice commit o expune. GitHub scaneaza automat si trimite alerta.",
-        "pattern": re.compile(r'(?:(?:sk-|pk-)[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z\-_]{35}|api[_-]?key[\s\'\"=:]+[\'\"][a-zA-Z0-9_\-]{16,}[\'\"])', re.IGNORECASE),
-    },
     # AWS Access Key
     {
         "type": "hardcoded_aws_key",
@@ -47,13 +47,53 @@ SECRET_PATTERNS = [
         "description": "Cheie AWS hardcodata — poate duce la preluarea contului. Roteste imediat.",
         "pattern": re.compile(r'(?:AKIA[0-9A-Z]{16}|aws_access_key_id[\s\'\"=:]+[\'\"][A-Z0-9]{16,}[\'\"])'),
     },
-    # Password / secret assignments
+    # Stripe secret/restricted key (rare in AI-gen code, dar echivaleaza cu acces la bani)
     {
-        "type": "hardcoded_password",
-        "severity": "high",
+        "type": "hardcoded_stripe_key",
+        "severity": "critical",
         "confidence": "high",
-        "description": "Parola hardcodata in cod — nu se pune in git niciodata.",
-        "pattern": re.compile(r'(?:password|passwd|pwd|secret|token)\s*[=:]\s*[\'\"][^\'\"$\n]{6,}[\'\"]', re.IGNORECASE),
+        "description": "Cheie Stripe hardcodata — oricine o vede poate initia plati/rambursari pe contul tau.",
+        "pattern": re.compile(r'\b(?:sk|rk)_(?:live|test)_[0-9a-zA-Z]{16,}'),
+    },
+    # SendGrid / Mailgun API key
+    {
+        "type": "hardcoded_sendgrid_key",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "Cheie SendGrid hardcodata — poate fi folosita pentru spam de pe domeniul tau.",
+        "pattern": re.compile(r'\bSG\.[a-zA-Z0-9_\-]{16,}\.[a-zA-Z0-9_\-]{16,}'),
+    },
+    # Slack token (bot/user/app/webhook)
+    {
+        "type": "hardcoded_slack_token",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "Token Slack hardcodat — da acces la workspace-ul tau.",
+        "pattern": re.compile(r'\bxox[baprse]-[0-9a-zA-Z\-]{10,}'),
+    },
+    # GitHub token (PAT / app / refresh)
+    {
+        "type": "hardcoded_github_token",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "Token GitHub hardcodat — poate da acces la toate repo-urile tale.",
+        "pattern": re.compile(r'(?:\b(?:ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36,}|\bgithub_pat_[a-zA-Z0-9_]{22,})'),
+    },
+    # Google OAuth client secret
+    {
+        "type": "hardcoded_google_secret",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "Client secret Google hardcodat — permite impersonarea aplicatiei tale.",
+        "pattern": re.compile(r'\bGOCSPX-[a-zA-Z0-9_\-]{20,}'),
+    },
+    # OpenAI / Anthropic / generic API keys
+    {
+        "type": "hardcoded_api_key",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "Hardcodat API key — orice commit o expune. GitHub scaneaza automat si trimite alerta.",
+        "pattern": re.compile(r'(?:(?:sk-|pk-)[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z\-_]{35}|api[_-]?key[\s\'\"=:]+[\'\"][a-zA-Z0-9_\-]{16,}[\'\"])', re.IGNORECASE),
     },
     # JWT / Bearer tokens
     {
@@ -62,6 +102,15 @@ SECRET_PATTERNS = [
         "confidence": "high",
         "description": "JWT token hardcodat — oricine vede codul il poate folosi.",
         "pattern": re.compile(r'(?:bearer\s+[a-zA-Z0-9\-_\.]{20,}|eyJ[a-zA-Z0-9\-_\.]{20,})', re.IGNORECASE),
+    },
+    # Password / secret assignments — GENERIC, ultimul (nu mai fura eticheta
+    # pattern-urilor specifice de mai sus).
+    {
+        "type": "hardcoded_password",
+        "severity": "high",
+        "confidence": "high",
+        "description": "Parola hardcodata in cod — nu se pune in git niciodata.",
+        "pattern": re.compile(r'(?:password|passwd|pwd|secret|token)\s*[=:]\s*[\'\"][^\'\"$\n]{6,}[\'\"]', re.IGNORECASE),
     },
     # Database connection strings
     {
@@ -231,7 +280,18 @@ CODE_PATTERNS = [
         "severity": "critical",
         "confidence": "high",
         "description": "Comanda shell construita dinamic — injectie shell posibila. Atacatorul poate rula comenzi pe server.",
-        "pattern": re.compile(r'(?:os\.system|subprocess\.(?:call|Popen|run)|exec)\s*\([^)]{0,200}?(?:f[\'\"]|[\'\"]\s*\+)', re.IGNORECASE),
+        # [^\n;] in loc de [^)]: prinde si argumente cu paranteze imbricate
+        # (ex: os.system(f"ping {get_host(x)}")) fara sa treaca peste linii/comenzi.
+        "pattern": re.compile(r'(?:os\.system|subprocess\.(?:call|Popen|run|check_output|check_call)|os\.popen|exec)\s*\([^\n;]{0,200}?(?:f[\'\"]|[\'\"]\s*\+)', re.IGNORECASE),
+    },
+    # shell=True transforma orice argument string in comanda shell (injectie),
+    # chiar si fara concatenare vizibila (fix 2026-09-26).
+    {
+        "type": "command_injection",
+        "severity": "critical",
+        "confidence": "high",
+        "description": "subprocess cu shell=True — inputul devine comanda shell. Atacatorul poate rula comenzi pe server.",
+        "pattern": re.compile(r'\bsubprocess\.(?:run|call|Popen|check_output|check_call)\s*\([^\n]{0,200}?shell\s*=\s*True', re.IGNORECASE),
     },
     {
         "type": "eval_usage",
@@ -294,23 +354,33 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
     findings = []
     lines = code.split('\n')
 
-    # Track matched lines to avoid duplicates
+    # Track matched (type, line) to avoid duplicates of the SAME type on a line,
+    # dar lasa tipuri diferite pe aceeasi linie sa se raporteze separat (fix 2026-09-26).
     matched_lines_secrets = set()
     matched_lines_code = set()
 
     # Scan for secrets
+    secret_spans = []  # (start, end) raportate deja de un pattern mai specific
     for pattern_def in SECRET_PATTERNS:
         for match in pattern_def["pattern"].finditer(code):
+            # Nu raporta generic peste ceva deja prins de un pattern specific:
+            # ex. cheia Stripe/GitHub nu mai apare si ca "hardcoded_password".
+            if any(not (match.end() <= s or match.start() >= e)
+                   for s, e in secret_spans):
+                continue
+
             # Calculate line number
             line_no = code[:match.start()].count('\n') + 1
-            if line_no in matched_lines_secrets:
+            dedup_key = (pattern_def["type"], line_no)
+            if dedup_key in matched_lines_secrets:
                 continue
-            matched_lines_secrets.add(line_no)
+            matched_lines_secrets.add(dedup_key)
 
             col = match.start() - code[:match.start()].rfind('\n') - 1
             if col < 0:
                 col = 0
 
+            secret_spans.append((match.start(), match.end()))
             findings.append(Finding(
                 type=pattern_def["type"],
                 severity=pattern_def["severity"],
@@ -338,9 +408,10 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                 if _is_batch_eval_context(before, filename):
                     continue  # FP — eval is a variable name in batch context
 
-            if line_no in matched_lines_code and pattern_def["type"] in ("sql_injection_concat", "sql_injection_format"):
+            code_key = (pattern_def["type"], line_no)
+            if pattern_def["type"] in ("sql_injection_concat", "sql_injection_format") and code_key in matched_lines_code:
                 continue
-            matched_lines_code.add(line_no)
+            matched_lines_code.add(code_key)
 
             col = match.start() - code[:match.start()].rfind('\n') - 1
             if col < 0:
@@ -356,16 +427,18 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                 confidence=pattern_def["confidence"],
             ))
 
-    # Deduplicate by (type, line)
+    # Deduplicate by (type, line, column) — 2 secrete DISTINCTE pe aceeasi linie
+    # trebuie raportate amandoua (fix 2026-09-26; inainte cheia era (type, line)).
     seen = set()
     unique = []
     for f in findings:
-        key = (f.type, f.line)
+        key = (f.type, f.line, f.column)
         if key not in seen:
             seen.add(key)
             unique.append(f)
 
-    unique.sort(key=lambda f: (f.line, f.severity))
+    # Sortare pe RANG de severitate (nu alfabetic: 'low' < 'medium' era gresit).
+    unique.sort(key=lambda f: (f.line, SEVERITY_RANK.get(f.severity, 9)))
     return [asdict(f) for f in unique]
 
 

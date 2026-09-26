@@ -2,7 +2,7 @@
 
 > 1 in 3 AI-generated projects (Cursor, Lovable, Bolt, Claude Code) ships with exposed secrets or security vulnerabilities. NeuralScan catches them and explains how to fix them — in plain English.
 
-[![Tests](https://img.shields.io/badge/tests-84%2F84-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
+[![Tests](https://img.shields.io/badge/tests-106%2F106-passing-brightgreen)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![CI](https://github.com/alexcurpan-cloud/neuralscan/actions/workflows/tests.yml/badge.svg)](https://github.com/alexcurpan-cloud/neuralscan/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -227,13 +227,14 @@ to the admin key only — never to testers.
 
 ```bash
 python -m pytest tests/ -v
-# 84 passed (scanner, security hardening, audit, keys, ZIP scan, admin API)
+# 106 passed (scanner, security hardening, audit, keys, ZIP scan, admin API)
 ```
 
 Covers: all 7 detection categories, clean code (zero false positives), edge cases (namespace URLs,
 batch eval, parameterized queries), translator output format, file scanning, deduplication,
 ReDoS hardening, Strat 2 keys (hash-only storage, revoke, owner-scoping), ZIP scan (zip-slip safe),
-admin keys API. CI runs the suite on every push/PR (GitHub Actions).
+admin keys API, `.env*` variants + noise-dir exclusion, provider token labels (Stripe/SendGrid/
+Slack/GitHub/Google), multi-secret lines, `shell=True`. CI runs the suite on every push/PR (GitHub Actions).
 
 ---
 

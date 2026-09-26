@@ -29,6 +29,25 @@ CODE_EXTENSIONS = {
 # Fisiere fara extensie care merita scanate
 NAKED_NAMES = {'.env', 'dockerfile', 'makefile', 'procfile'}
 
+# .env + variantele lui (.env.local, .env.production, ...) — ACESTEA sunt fisierele cu
+# secrete (fix 2026-09-26: inainte erau SĂRITE; suffixul '.local' nu era in
+# CODE_EXTENSIONS, deci un zip cu secrete trecea curat).
+ENV_NAME_PREFIX = '.env'
+# ...dar NU sabloanele fara secrete reale (zgomot eliminat).
+ENV_PLACEHOLDER_NAMES = {
+    '.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults',
+}
+
+# Directoare ignorate COMPLET (fix 2026-09-26: node_modules umplea limita de 300
+# fisiere si un export Lovable/Bolt pica cu 400 fara niciun rezultat).
+EXCLUDED_DIRS = {
+    'node_modules', 'bower_components', 'vendor', '.git', '.svn', '.hg',
+    'dist', 'build', 'out', 'target', 'coverage', 'htmlcov',
+    '__pycache__', '.venv', 'venv', 'env', 'site-packages',
+    '.next', '.nuxt', '.svelte-kit', '.cache', '.parcel-cache',
+    '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.terraform',
+}
+
 MAX_ZIP_BYTES = 5 * 1024 * 1024       # zip brut max 5MB
 MAX_TOTAL_UNCOMPRESSED = 15 * 1024 * 1024  # 15MB decomprimat
 MAX_FILES = 300
@@ -37,10 +56,22 @@ MAX_FINDINGS_PER_FILE = 100
 MAX_FINDINGS_TOTAL = 500
 
 
+def _is_excluded_dir(name: str) -> bool:
+    """True daca vreun director din cale e in lista de exclusiuni."""
+    parts = name.replace('\\', '/').lower().split('/')[:-1]
+    return any(p in EXCLUDED_DIRS for p in parts)
+
+
 def _is_scannable(name: str) -> bool:
     lower = name.lower()
-    if Path(lower).name in NAKED_NAMES:
+    fname = Path(lower).name
+    if _is_excluded_dir(lower):
+        return False
+    if fname in NAKED_NAMES:
         return True
+    # .env si TOATE variantele lui, mai putin sabloanele
+    if fname.startswith(ENV_NAME_PREFIX):
+        return fname not in ENV_PLACEHOLDER_NAMES
     return Path(lower).suffix in CODE_EXTENSIONS
 
 
@@ -82,9 +113,24 @@ def scan_zip(data: bytes, zip_name: str = 'repo.zip') -> dict:
 
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         infos = zf.infolist()
-        if len(infos) > MAX_FILES:
-            raise ValueError(f"prea multe fisiere in zip (max {MAX_FILES})")
-        total_uncompressed = sum(i.file_size for i in infos)
+        # Selectam fisierele relevante INAINTE de limite: node_modules/.git/dist nu
+        # trebuie sa consume bugetul (altfel un proiect real pica cu 400).
+        # Zip-slip se verifica pe TOATE entry-urile (inclusiv cele sarite).
+        targets = []
+        for info in infos:
+            if info.is_dir():
+                continue
+            name = _safe_member_name(info)
+            if not _is_scannable(name):
+                continue
+            targets.append((info, name))
+
+        if len(targets) > MAX_FILES:
+            raise ValueError(
+                f"prea multe fisiere de cod in zip ({len(targets)}, max {MAX_FILES}) "
+                "— ignora node_modules/.git/dist sau imparte proiectul"
+            )
+        total_uncompressed = sum(i.file_size for i, _ in targets)
         if total_uncompressed > MAX_TOTAL_UNCOMPRESSED:
             raise ValueError("zip prea mare decomprimat (max 15MB)")
 
@@ -94,10 +140,7 @@ def scan_zip(data: bytes, zip_name: str = 'repo.zip') -> dict:
         files_with_findings = 0
         all_findings = []
 
-        for info in infos:
-            name = _safe_member_name(info)
-            if info.is_dir() or not _is_scannable(name):
-                continue
+        for info, name in targets:
             if info.file_size > MAX_FILE_BYTES:
                 continue  # fisier prea mare — sarit, nu eroare
 
