@@ -17,7 +17,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from scanner import scan_code
+from scanner import scan_code, is_lockfile
 from translator import translate_findings
 
 # Extensii considerate cod (se scaneaza)
@@ -66,6 +66,9 @@ def _is_scannable(name: str) -> bool:
     lower = name.lower()
     fname = Path(lower).name
     if _is_excluded_dir(lower):
+        return False
+    # Fix 2026-10-09: lockfiles = zgomot (hash-uri, nu secrete) → sarite.
+    if is_lockfile(fname):
         return False
     if fname in NAKED_NAMES:
         return True

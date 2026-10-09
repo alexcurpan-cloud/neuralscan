@@ -27,6 +27,22 @@ def _client():
     return app.test_client(), {'X-API-Key': os.environ.get('NEURALSCAN_API_KEYS', 'test-key-123').split(',')[0]}
 
 
+def test_zip_skips_lockfiles():
+    """package-lock.json (hash-uri, nu secrete) nu produce findings (fix 2026-10-09)."""
+    zip_data = _make_zip({
+        'package-lock.json': '{"d": {"integrity": "sha512-eyJhbGciOiJIUzI1NiJ9abcdefghijklmnop"}}\n',
+        'app.py': 'print("ok")\n',
+    })
+    c, h = _client()
+    r = c.post('/scan/zip', data={'file': (io.BytesIO(zip_data), 'repo.zip')},
+               headers=h, content_type='multipart/form-data')
+    assert r.status_code == 200
+    j = r.get_json()
+    names = [f['file'] for f in j['findings_by_file']]
+    assert 'package-lock.json' not in names, names
+    assert j['total'] == 0
+
+
 # ─── C1: findings per fisier + agregat ──────────────────────────────
 
 def test_zip_with_vulnerable_files():

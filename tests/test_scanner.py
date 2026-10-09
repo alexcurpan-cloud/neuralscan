@@ -195,6 +195,35 @@ def test_batch_eval_variable_not_flagged():
     assert "eval_usage" not in types
 
 
+def test_comment_line_url_not_flagged():
+    """URL pe o linie DOAR comentariu → fara insecure_http (fix 2026-10-09)."""
+    code = '/* http://example.com is just a note */\nprint("ok")\n'
+    res = scan_code(code, 'test.js')
+    assert "insecure_http" not in [f["type"] for f in res]
+
+
+def test_block_comment_continuation_not_flagged():
+    code = "/*\n * see http://example.com for docs\n */\nprint('ok')\n"
+    res = scan_code(code, 'test.js')
+    assert "insecure_http" not in [f["type"] for f in res]
+
+
+def test_real_insecure_http_still_flagged():
+    """Cod REAL cu http:// rămâne raportat (nu mascam cod)."""
+    code = 'url = "http://insecure-api.com/data"\n'
+    res = scan_code(code, 'test.js')
+    assert "insecure_http" in [f["type"] for f in res]
+
+
+def test_is_lockfile_helper():
+    from scanner import is_lockfile
+    assert is_lockfile('package-lock.json')
+    assert is_lockfile('sub/yarn.lock')
+    assert is_lockfile('Cargo.lock')
+    assert not is_lockfile('app.py')
+    assert not is_lockfile('lockfile.py')
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 5. TRANSLATOR TESTS
 # ═══════════════════════════════════════════════════════════════════

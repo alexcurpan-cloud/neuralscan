@@ -26,7 +26,7 @@ except Exception:
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "src"))
 
-from scanner import scan_code  # noqa: E402
+from scanner import scan_code, is_lockfile  # noqa: E402
 from translator import translate_findings  # noqa: E402
 
 EXTENSIONS = {".py", ".js", ".ts", ".jsx", ".tsx", ".html", ".htm", ".json", ".sql", ".sh", ".rb", ".php"}
@@ -50,6 +50,8 @@ def collect(path):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             for n in sorted(names):
                 if os.path.splitext(n)[1].lower() in EXTENSIONS:
+                    if is_lockfile(n):
+                        continue  # lockfiles = zgomot (hash-uri, nu secrete)
                     p = os.path.join(root, n)
                     try:
                         out.append((p, _read(p)))

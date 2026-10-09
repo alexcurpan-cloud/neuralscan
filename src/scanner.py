@@ -33,6 +33,42 @@ class Finding:
 SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 
+# Fix 2026-10-09: fisierele LOCK contin hash-uri de integritate (nu secrete) si
+# produc fals-pozitive (ex. 'hardcoded_jwt' in package-lock.json). Sunt sarite la
+# colectarea fisierelor (CLI + ZIP), NU la scanarea unui sir de cod dat direct.
+LOCKFILE_NAMES = {
+    "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml",
+    "bun.lockb", "composer.lock", "gemfile.lock", "poetry.lock", "cargo.lock",
+    "pipfile.lock", "packages.lock.json", "mix.lock", "pubspec.lock",
+}
+
+
+def is_lockfile(name: str) -> bool:
+    """True pentru fisiere lock (zgomot in scanare) — verificat pe basename."""
+    base = os.path.basename((name or "").replace("\\", "/")).lower()
+    return base in LOCKFILE_NAMES
+
+
+def _mask_comment_lines(code: str, filename: str = "") -> str:
+    """Inlocuieste liniile care sunt DOAR comentariu cu spatii (aceeasi lungime).
+
+    Astfel un URL/secret mentionat intr-un comentariu nu mai produce findings,
+    fara sa atinga liniile de cod si fara sa deplaseze numerele de linie.
+    """
+    ext = os.path.splitext(filename or "")[1].lower()
+    dash_ok = ext in (".sql", ".sh", ".bash", ".zsh", ".yml", ".yaml")
+    out = []
+    for line in code.split("\n"):
+        s = line.lstrip()
+        is_c = s.startswith(("//", "/*", "*/", "#"))
+        if not is_c and s.startswith("*") and (len(s) == 1 or s[1] in " \t"):
+            is_c = True  # continuare de block-comment (linia incepe cu '*')
+        if not is_c and dash_ok and s.startswith("--") and (len(s) == 2 or s[2] in " \t"):
+            is_c = True  # comentariu SQL/shell
+        out.append(" " * len(line) if is_c else line)
+    return "\n".join(out)
+
+
 # ─── Secret patterns ────────────────────────────────────────────────
 
 # ORDINEA CONTEAZA (fix 2026-09-26): pattern-urile SPECIFICE (prefix de provider)
@@ -352,6 +388,10 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
     Returneaza lista de findings.
     """
     findings = []
+    # Fix 2026-10-09: liniile care sunt DOAR comentariu nu mai produc findings
+    # (ex: un URL 'http://...' într-un comentariu → fals-pozitiv). Înlocuim
+    # comentariile cu spații — aceeași lungime, deci liniile/coloanele rămân corecte.
+    code = _mask_comment_lines(code, filename)
     lines = code.split('\n')
 
     # Track matched (type, line) to avoid duplicates of the SAME type on a line,
