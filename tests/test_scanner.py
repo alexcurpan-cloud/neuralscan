@@ -224,6 +224,28 @@ def test_is_lockfile_helper():
     assert not is_lockfile('lockfile.py')
 
 
+def test_placeholder_secrets_not_flagged():
+    """Placeholdere de template → fara findings (fix 2026-10-09)."""
+    assert scan_code('password: "your-password-here"', 't.ts') == []
+    assert scan_code('PASSWORD = "changeme"', 't.py') == []
+    assert scan_code('DATABASE_URL = "postgresql://user:***@host:5432/db"', 't.py') == []
+
+
+def test_test_stripe_key_not_flagged():
+    res = scan_code('key = "sk_test_' + 'x' * 24 + '"', 't.py')
+    assert "hardcoded_stripe_key" not in [f["type"] for f in res]
+
+
+def test_live_stripe_key_still_flagged():
+    res = scan_code('key = "sk_live_' + 'x' * 24 + '"', 't.py')
+    assert "hardcoded_stripe_key" in [f["type"] for f in res]
+
+
+def test_real_password_still_flagged():
+    res = scan_code('DB_PASSWORD = "S3cr3tP@ssw0rdLong"', 't.py')
+    assert "hardcoded_password" in [f["type"] for f in res]
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 5. TRANSLATOR TESTS
 # ═══════════════════════════════════════════════════════════════════

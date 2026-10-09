@@ -69,6 +69,56 @@ def _mask_comment_lines(code: str, filename: str = "") -> str:
     return "\n".join(out)
 
 
+# Fix 2026-10-09: valori care NU sunt secrete reale — placeholdere de template si
+# chei de TEST (zero bani). Raportarea lor = fals-pozitive care ne face de râs
+# (ex: "your-password-here" sau sk_test_... raportate ca secret CRITIC).
+_EXACT_PLACEHOLDERS = {
+    "password", "passwd", "pwd", "secret", "token", "apikey", "api_key",
+    "changeme", "change-me", "change_me", "admin", "root", "example", "sample",
+    "dummy", "todo", "fixme", "placeholder", "none", "null", "undefined",
+    "yourpassword", "your_password", "your-password", "test", "12345678",
+}
+# Markerii trebuie sa fie NON-ambigui: NU include 'aaaa'/'xxxx'/'test' (apar in
+# chei de test legitime: ghp_+xxx, SG.aaaa..., etc.).
+_PLACEHOLDER_MARKERS = (
+    "your-", "your_", "yourpassword", "changeme", "change-me", "change_me",
+    "placeholder", "example", "dummy", "sample", "redacted", "replace-me",
+    "replace_me", "insert your", "<", ">", "{{", "${", "***", "your password",
+)
+_TEST_TOKEN_PREFIXES = ("tok_", "tok-")
+
+
+def _is_placeholder_value(value: str) -> bool:
+    """True daca valoarea e un placeholder/valoare de test, nu un secret real."""
+    s = (value or "").strip().strip("'\"").lower()
+    if not s:
+        return True
+    if s in _EXACT_PLACEHOLDERS:
+        return True
+    if s.startswith(_TEST_TOKEN_PREFIXES):
+        return True
+    return any(m in s for m in _PLACEHOLDER_MARKERS)
+
+
+def _secret_is_placeholder(match_text: str, ptype: str) -> bool:
+    """Decide daca un match de SECRET e de fapt placeholder/test (se poate sări)."""
+    t = match_text or ""
+    low = t.lower()
+    if ptype == "hardcoded_stripe_key":
+        # sk_test_/rk_test_ = mod de TEST (fara acces la bani) -> nu e "critic".
+        return "_test_" in low or "_live_" not in low
+    if ptype == "hardcoded_db_url":
+        m = re.search(r"://([^:\s/]+):([^@\s]+)@", t)
+        if m:
+            return _is_placeholder_value(m.group(2)) or _is_placeholder_value(m.group(1))
+        return False
+    # generic (parole, api keys): extrage ultimul sir intre ghilimele
+    quoted = re.findall(r"[\"']([^\"']{3,})[\"']", t)
+    if quoted:
+        return _is_placeholder_value(quoted[-1])
+    return _is_placeholder_value(t)
+
+
 # ─── Secret patterns ────────────────────────────────────────────────
 
 # ORDINEA CONTEAZA (fix 2026-09-26): pattern-urile SPECIFICE (prefix de provider)
@@ -407,6 +457,11 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
             # ex. cheia Stripe/GitHub nu mai apare si ca "hardcoded_password".
             if any(not (match.end() <= s or match.start() >= e)
                    for s, e in secret_spans):
+                continue
+
+            # Fix 2026-10-09: placeholdere de template + chei de TEST nu sunt
+            # secrete reale -> nu le raportam (fals-pozitive care ne-ar face de râs).
+            if _secret_is_placeholder(match.group(), pattern_def["type"]):
                 continue
 
             # Calculate line number
