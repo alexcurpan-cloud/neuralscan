@@ -36,6 +36,31 @@ const DEFAULT_ADMIN_PASSWORD = "Sathsih@2004";
   arată clar că unealta trebuie curățată de lockfile-noise.
 
 ## Următor
+
+## ✅ FIX APLICAT (2026-10-09) — lockfile-noise + comentarii
+
+**Modificări** (`src/scanner.py`, `src/zipscan.py`, `neuralscan-cli.py`, teste):
+- lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `composer.lock`, ...)
+  → **SĂRITE** la colectare (CLI + ZIP). Helper `is_lockfile()`.
+- liniile care sunt **DOAR comentariu** (`//`, `/*`, `*/`, `*` continuare, `#`, `--` sql/sh)
+  → mascate cu spații (aceeași lungime → liniile/coloanele rămân corecte).
+- **+5 teste** → **111/111 verzi** (rulat în venv).
+
+**Dovadă înainte/după (aceleași 5 repo-uri):**
+
+| Repo | Înainte | După |
+|---|---|---|
+| rye-lovable-demo | 2 (1 lockfile) | **1** (hardcoded_password @ rye-api.ts:164) |
+| E-comUpdatedVersion | 4 (3 lockfile) | **1** (hardcoded_password @ admin.profile.tsx:13) |
+| G2G-Properties | 0 | 0 |
+| gptme-webui | 2 (lockfile + comentariu) | **0** |
+| book-api-py | 0 | 0 |
+| **TOTAL** | **8** (6 false) | **2** (ambele reale) |
+
+**Verificat LIVE în prod** (commit `621f30d`, deploy CI): `POST /scan/zip` cu un `package-lock.json`
+→ `total: 0`, `files_scanned: 1` (doar `app.py`) ⇒ lockfile-ul e sărit în producție.
+
+## Următor
 1. Fix scanner: skip lockfile + comentarii → rapoarte curate.
 2. Finding real (parolă admin) → outreach RESPONSABIL (DM privat autorului, nu post public).
 3. Extind checks pe repo-uri cu **backend** (unde scannerul excelează).
