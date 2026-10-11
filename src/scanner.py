@@ -11,6 +11,7 @@ Detects:
 
 import re
 import os
+import base64
 import tempfile
 import json
 from dataclasses import dataclass, field, asdict
@@ -47,6 +48,78 @@ def is_lockfile(name: str) -> bool:
     """True pentru fisiere lock (zgomot in scanare) — verificat pe basename."""
     base = os.path.basename((name or "").replace("\\", "/")).lower()
     return base in LOCKFILE_NAMES
+
+
+# Fix 2026-10-11 (precizie outreach): 3 clase de fals-pozitive care umflau rapoartele
+# pe apps reale (Lovable/Supabase), confirmate pe 5 repo-uri publice:
+#   1. chei Supabase anon/publishable (PUBLICE prin design) raportate ca "JWT critic"
+#   2. data: URI base64 (imagini inline) cu substring ce arata ca JWT/secret
+#   3. model.eval() / regex.exec() in fisiere minificate -> "executie de cod"
+ANON_ROLES = {"anon", "publishable"}
+
+
+def _mask_data_uris(code: str) -> str:
+    """Mascheaza data: URI base64 (imagini/fonturi inline) — zgomot, nu secrete."""
+    return re.sub(
+        r'data:[a-zA-Z0-9.+-]+/[a-zA-Z0-9.+-]+(?:;base64)?,[A-Za-z0-9+/=%\s]{16,}',
+        lambda m: " " * len(m.group()), code,
+    )
+
+
+def _jwt_is_public(text: str) -> bool:
+    """True pentru JWT-uri PUBLICE (Supabase anon/publishable) — nu sunt secrete.
+
+    Supabase anon key = JWT cu payload {iss: supabase, role: anon}. E menit public
+    (protejat de RLS). Orice app Lovable il are in client.ts -> era raportat 'critic'.
+    """
+    parts = text.split(".")
+    if len(parts) < 2:
+        return False
+    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+    try:
+        data = json.loads(base64.urlsafe_b64decode(payload))
+    except Exception:
+        return False
+    role = str(data.get("role", "")).lower()
+    return role in ANON_ROLES
+
+
+def _is_method_eval_context(line_before: str) -> bool:
+    """True daca 'eval(' e de fapt un apel de METODA (obj.eval()) — nu eval() global.
+
+    Ex: PyTorch model.eval(), re.Pattern.exec -> zgomot, nu executie de cod."""
+    return line_before.rstrip().endswith(".")
+
+
+def _is_minified(code: str) -> bool:
+    """Heuristica: fisiere minificate/bundled (linii f. lungi, putine) = zgomot."""
+    lens = [len(l) for l in code.split("\n") if l.strip()]
+    if not lens:
+        return False
+    very_long = sum(1 for L in lens if L > 1000)
+    if very_long >= 3 or (max(lens) > 2000 and len(lens) < 40):
+        return True
+    # JS obfuscat (mult _0x...) = cod de bundle/vendor, nu codul autorului.
+    return code.count("_0x") > 10
+
+
+# Valori-cunoscute care NU sunt secrete (constante de protocol/placeholder).
+NOT_SECRET_VALUES = {"x-oauth-basic", "x-access-token", "oauth2", "basic"}
+
+
+def _password_match_is_noise(match_text: str) -> bool:
+    """True daca un match 'password/token = "..."' e de fapt zgomot.
+
+    - valoarea contine spatii -> e o propozitie (log/mesaj), nu o parola
+    - valoarea e o constanta de protocol (x-oauth-basic)
+    """
+    quoted = re.findall(r"[\"']([^\"']{1,})[\"']", match_text)
+    if not quoted:
+        return False
+    value = quoted[-1]
+    if value.strip().lower() in NOT_SECRET_VALUES:
+        return True
+    return bool(re.search(r"\s", value))
 
 
 def _mask_comment_lines(code: str, filename: str = "") -> str:
@@ -442,7 +515,9 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
     # (ex: un URL 'http://...' într-un comentariu → fals-pozitiv). Înlocuim
     # comentariile cu spații — aceeași lungime, deci liniile/coloanele rămân corecte.
     code = _mask_comment_lines(code, filename)
+    code = _mask_data_uris(code)
     lines = code.split('\n')
+    minified = _is_minified(code)
 
     # Track matched (type, line) to avoid duplicates of the SAME type on a line,
     # dar lasa tipuri diferite pe aceeasi linie sa se raporteze separat (fix 2026-09-26).
@@ -462,6 +537,13 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
             # Fix 2026-10-09: placeholdere de template + chei de TEST nu sunt
             # secrete reale -> nu le raportam (fals-pozitive care ne-ar face de râs).
             if _secret_is_placeholder(match.group(), pattern_def["type"]):
+                continue
+
+            # Fix 2026-10-11: cheile PUBLICE (Supabase anon/publishable) nu sunt secrete.
+            if pattern_def["type"] == "hardcoded_jwt" and _jwt_is_public(match.group()):
+                continue
+            # Fix 2026-10-11: 'password/token = "..."' cu propozitie/constantă = zgomot.
+            if pattern_def["type"] == "hardcoded_password" and _password_match_is_noise(match.group()):
                 continue
 
             # Calculate line number
@@ -487,7 +569,8 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
             ))
 
     # Scan for code issues (SQL injection, etc.)
-    for pattern_def in CODE_PATTERNS:
+    # Fix 2026-10-11: in fisiere minificate (bundle/vendor) pattern-urile de cod sunt zgomot.
+    for pattern_def in ([] if minified else CODE_PATTERNS):
         for match in pattern_def["pattern"].finditer(code):
             line_no = code[:match.start()].count('\n') + 1
 
@@ -502,6 +585,15 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                 before = _text_before(code, match.start())
                 if _is_batch_eval_context(before, filename):
                     continue  # FP — eval is a variable name in batch context
+                # Fix 2026-10-11: model.eval() / obj.eval() = apel de metoda, nu eval() global.
+                if _is_method_eval_context(before):
+                    continue
+
+            # Fix 2026-10-11: PRAGMA/DDL nu se parametrizeaza (nu e injectabil prin concat).
+            if pattern_def["type"].startswith("sql_injection"):
+                line_txt = code.split("\n")[line_no - 1] if line_no - 1 < len(lines) else ""
+                if re.search(r'\b(PRAGMA|ALTER\s+TABLE|CREATE\s+TABLE|DROP\s+TABLE)\b', line_txt, re.IGNORECASE):
+                    continue
 
             code_key = (pattern_def["type"], line_no)
             if pattern_def["type"] in ("sql_injection_concat", "sql_injection_format") and code_key in matched_lines_code:

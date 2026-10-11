@@ -1,0 +1,362 @@
+[
+  {
+    "repo": "thomasloarec/salon-chercheur-france",
+    "url": "https://github.com/thomasloarec/salon-chercheur-france",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/integrations/supabase/client.ts",
+        "line": 6,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJh...Z8Hw"
+      },
+      {
+        "file": "src/components/admin/AirtableImport.tsx",
+        "line": 10,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJh...Z8Hw"
+      },
+      {
+        "file": "api/invitation-og.js",
+        "line": 18,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJh...Z8Hw"
+      }
+    ],
+    "email": "thomas.loarec@hotmail.fr"
+  },
+  {
+    "repo": "Baloshi69/private_portfolio",
+    "url": "https://github.com/Baloshi69/private_portfolio",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "clearshowings.html",
+        "line": 133,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "AIza...7m4g"
+      },
+      {
+        "file": "clearshowings.html",
+        "line": 136,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...Qc=\""
+      },
+      {
+        "file": "clearshowings.html",
+        "line": 219,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "public/lovable-uploads/Software Development.json",
+        "line": 1,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyjW...Y2F4"
+      },
+      {
+        "file": "public/lovable-uploads/Descovery.json",
+        "line": 1,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "EYjP...791b"
+      }
+    ],
+    "email": "thebalosh69@gmail.com"
+  },
+  {
+    "repo": "cvUPTZ/reimagined-framework",
+    "url": "https://github.com/cvUPTZ/reimagined-framework",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/assets/telegram-qr.ts",
+        "line": 4,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJu...RCl4"
+      }
+    ],
+    "email": "zombanew901@gmail.com"
+  },
+  {
+    "repo": "byoungju-web/coverfo",
+    "url": "https://github.com/byoungju-web/coverfo",
+    "stars": 0,
+    "language": "HTML",
+    "findings": [
+      {
+        "file": "public/Dashboard-Deploy-Coverfo.html",
+        "line": 29,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/Dashboard-Deploy-Coverfo.html",
+        "line": 30,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/Coverfo-Monetization-Credit-Toss.html",
+        "line": 29,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/Coverfo-Monetization-Credit-Toss.html",
+        "line": 30,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/18_event_booking_calendar.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/18_event_booking_calendar.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/16_saas_billing.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/16_saas_billing.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/14_inventory_management.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/14_inventory_management.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/13_expense_tracker.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/13_expense_tracker.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/08_crm_pipeline.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/08_crm_pipeline.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "public/05_dashboard.html",
+        "line": 31,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...==\"+"
+      },
+      {
+        "file": "public/05_dashboard.html",
+        "line": 32,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "exec...: \"+"
+      },
+      {
+        "file": "app/lib/stores/githubConnection.ts",
+        "line": 94,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "pass...sic'"
+      },
+      {
+        "file": "app/lib/hooks/useGitHubConnection.ts",
+        "line": 148,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "pass...sic'"
+      },
+      {
+        "file": "app/components/@settings/tabs/github/components/GitHubConnection.tsx",
+        "line": 26,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke... ? '"
+      }
+    ],
+    "email": "hasin7jk@gmail.com"
+  },
+  {
+    "repo": "pablocaeg/sloptotal",
+    "url": "https://github.com/pablocaeg/sloptotal",
+    "stars": 60,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "tests/eval/candidate_models.py",
+        "line": 42,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/database.py",
+        "line": 42,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f\""
+      },
+      {
+        "file": "app/database.py",
+        "line": 115,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f\""
+      },
+      {
+        "file": "app/database.py",
+        "line": 121,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "exec...  f\""
+      },
+      {
+        "file": "app/database.py",
+        "line": 312,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f\""
+      },
+      {
+        "file": "app/database.py",
+        "line": 328,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f\""
+      },
+      {
+        "file": "app/engines/perplexity.py",
+        "line": 22,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/cross_perplexity.py",
+        "line": 22,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_tmr.py",
+        "line": 24,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_superannotate.py",
+        "line": 78,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_remodetect.py",
+        "line": 25,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_openai.py",
+        "line": 20,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_fakespot.py",
+        "line": 24,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_e5.py",
+        "line": 24,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_desklib.py",
+        "line": 61,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_chatgpt.py",
+        "line": 20,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      },
+      {
+        "file": "app/engines/classifier_bert_raid.py",
+        "line": 24,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev***l("
+      }
+    ],
+    "email": "bunnykudala@gmail.com"
+  }
+]
