@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fx-1",
+    "from": "jake.dev@gmail.com",
+    "subject": "How do I run a free scan?",
+    "text": "Hey, I built a small SaaS with Lovable and a friend said AI-generated code often has security holes. Can I get a free scan? Not sure where to upload my zip."
+  },
+  {
+    "id": "fx-2",
+    "from": "maria@startuphub.ro",
+    "subject": "Preturi / pricing",
+    "text": "Buna ziua, cat costa un scan complet pentru o aplicatie web? Avem un proiect in productie si vrem sa verificam inainte de lansare."
+  },
+  {
+    "id": "fx-3",
+    "from": "angry@customer.io",
+    "subject": "This is unacceptable - I want a refund",
+    "text": "I paid for the pro plan yesterday and the scan found nothing on an app I KNOW is vulnerable. My competitor got hacked last week. I want my money back or I will contact my lawyer and leave a public review."
+  },
+  {
+    "id": "fx-4",
+    "from": "partners@securityalliance.com",
+    "subject": "Partnership opportunity - 50k devs",
+    "text": "Hi, we run a community of 50k developers using AI coding tools. We would like to discuss an integration/affiliate partnership. Are you open to a call next week?"
+  },
+  {
+    "id": "fx-5",
+    "from": "noreply@promo-blaster.biz",
+    "subject": "Grow your traffic 10x GUARANTEED",
+    "text": "Buy 1 million backlinks now, limited offer!!! Click here to boost your SEO instantly."
+  },
+  {
+    "id": "fx-6",
+    "from": "tom@buildfast.dev",
+    "subject": "Scan fails on my zip (413)",
+    "text": "Your tool returns a 413 error when I upload my project zip. It's about 40MB. Is there a limit? How can I scan a bigger repo?"
+  }
+]

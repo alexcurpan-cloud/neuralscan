@@ -1,0 +1,64 @@
+{
+  "processed": {
+    "fx-1": {
+      "at": "2026-10-11T07:35:39.138094+00:00",
+      "category": "free_check",
+      "action": "auto_send",
+      "sent": false
+    },
+    "fx-2": {
+      "at": "2026-10-11T07:35:40.786591+00:00",
+      "category": "pricing",
+      "action": "auto_send",
+      "sent": false
+    },
+    "fx-3": {
+      "at": "2026-10-11T07:35:42.003611+00:00",
+      "category": "difficult",
+      "action": "escalate",
+      "sent": false
+    },
+    "fx-4": {
+      "at": "2026-10-11T07:35:43.854154+00:00",
+      "category": "partnership",
+      "action": "escalate",
+      "sent": false
+    },
+    "fx-5": {
+      "at": "2026-10-11T07:35:45.004590+00:00",
+      "category": "spam",
+      "action": "ignore",
+      "sent": false
+    },
+    "fx-6": {
+      "at": "2026-10-11T07:35:46.827097+00:00",
+      "category": "support",
+      "action": "draft",
+      "sent": false
+    },
+    "<010001a0870b031a-d2253c7b-78bf-4e1a-8167-637cdc2c5654-000000@email.amazonses.com>": {
+      "at": "2026-10-11T07:35:51.383497+00:00",
+      "category": "spam",
+      "action": "ignore",
+      "sent": false
+    },
+    "<010001a0870a4477-35f0cc6f-9a1b-4937-9247-4b9c0a0281e5-000000@email.amazonses.com>": {
+      "at": "2026-10-11T07:35:52.867066+00:00",
+      "category": "spam",
+      "action": "ignore",
+      "sent": false
+    },
+    "<010001a06ac677a4-7d96034d-29f4-44ae-b37b-71c660ae14e9-000000@email.amazonses.com>": {
+      "at": "2026-10-11T07:35:53.855875+00:00",
+      "category": "spam",
+      "action": "ignore",
+      "sent": false
+    },
+    "<010001a06ab40201-daddd315-6478-49b9-9cc7-7550232ae09a-000000@email.amazonses.com>": {
+      "at": "2026-10-11T07:35:55.159489+00:00",
+      "category": "spam",
+      "action": "ignore",
+      "sent": false
+    }
+  }
+}
