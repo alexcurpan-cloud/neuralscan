@@ -81,7 +81,29 @@ def _jwt_is_public(text: str) -> bool:
     except Exception:
         return False
     role = str(data.get("role", "")).lower()
-    return role in ANON_ROLES
+    if role in ANON_ROLES:
+        return True
+    # Fix 2026-10-13: JWT de tip Supabase storage SIGNED URL (payload are "scope":
+    # "download"/"upload") = link semnat catre UN obiect, nu credential de acces.
+    # Raportarea lui ca "JWT critic" a fost FP dovedit (MODOBOOK logo).
+    if str(data.get("scope", "")).lower() in ("download", "upload"):
+        return True
+    return False
+
+
+def _is_safe_subprocess_list_call(line_text: str, matched: str) -> bool:
+    """True daca e subprocess.*([...]) in forma de LISTA, fara shell=True.
+
+    Forma de lista trece argumentele direct (fara shell) -> NU e injectie shell.
+    FP dovedit 2026-10-13 (afterthought/crew: subprocess.run(["wt", "-C", f"..."])
+    raportat ca 'command_injection critical').
+    os.system/os.popen/exec sunt mereu shell/exec -> NU sunt sigure.
+    """
+    if re.search(r"shell\s*=\s*True", line_text):
+        return False  # shell=True explicit -> risc real
+    if re.match(r"\s*os\.(?:system|popen)\b", matched) or re.match(r"\s*exec\b", matched):
+        return False
+    return bool(re.match(r"\s*subprocess\.\w+\s*\(\s*\[", matched))
 
 
 def _is_method_eval_context(line_before: str) -> bool:
@@ -118,6 +140,10 @@ def _password_match_is_noise(match_text: str) -> bool:
         return False
     value = quoted[-1]
     if value.strip().lower() in NOT_SECRET_VALUES:
+        return True
+    # Fix 2026-10-13: valoare pur numerica si scurta (ex. token de preview '123456')
+    # = placeholder de template SAMPLE, nu secret. (Parolele reale nu-s 6 cifre.)
+    if value.strip().isdigit() and len(value.strip()) <= 8:
         return True
     return bool(re.search(r"\s", value))
 
@@ -589,9 +615,20 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                 if _is_method_eval_context(before):
                     continue
 
+            # Fix 2026-10-13: subprocess.run([...]) in forma de LISTA (fara shell=True)
+            # nu e injectie shell — FP dovedit (afterthought/crew).
+            if pattern_def["type"] == "command_injection":
+                line_txt_ci = lines[line_no - 1] if line_no - 1 < len(lines) else ""
+                if _is_safe_subprocess_list_call(line_txt_ci, match.group()):
+                    continue
+
             # Fix 2026-10-11: PRAGMA/DDL nu se parametrizeaza (nu e injectabil prin concat).
+            # Fix 2026-10-13: DDL scris pe 2 linii ("ALTER TABLE " +
+            #   "users ADD COLUMN ...") — verificam fereastra linia curenta + cea precedenta,
+            #   altfel concatenarea pe continuare scapa filtrul si iese FP.
             if pattern_def["type"].startswith("sql_injection"):
-                line_txt = code.split("\n")[line_no - 1] if line_no - 1 < len(lines) else ""
+                lo = max(0, line_no - 2)
+                line_txt = " ".join(lines[lo:line_no])
                 if re.search(r'\b(PRAGMA|ALTER\s+TABLE|CREATE\s+TABLE|DROP\s+TABLE)\b', line_txt, re.IGNORECASE):
                     continue
 

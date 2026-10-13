@@ -339,3 +339,77 @@ API_KEY = "sk-proj-1234567890abcdef123456"
     res = scan_code(code, 'test.py')
     if len(res) >= 2:
         assert res[0]["line"] <= res[1]["line"]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# REGRESIE 2026-10-13 — FP: DDL scris pe 2 linii nu trebuie raportat
+# ═══════════════════════════════════════════════════════════════════
+
+def test_ddl_single_line_not_flagged():
+    code = 'const q = "ALTER TABLE users ADD COLUMN age INT" + "";'
+    res = scan_code(code, 'test.ts')
+    assert not [f for f in res if f["type"].startswith("sql_injection")], \
+        f"DDL pe o linie = FP, a fost raportat: {res}"
+
+
+def test_ddl_split_two_lines_not_flagged():
+    # concatenare pe continuare: DDL pe linia urmatoare
+    code = (
+        'const q = "ALTER TABLE users " +\n'
+        '  "ADD COLUMN age INT" + suffix;\n'
+    )
+    res = scan_code(code, 'test.ts')
+    assert not [f for f in res if f["type"].startswith("sql_injection")], \
+        f"DDL pe 2 linii = FP, a fost raportat: {res}"
+
+
+def test_real_sql_concat_still_flagged():
+    code = 'cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")'
+    res = scan_code(code, 'test.py')
+    assert [f for f in res if f["type"].startswith("sql_injection")], \
+        f"SQLi real NU trebuie filtrat: {res}"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# REGRESIE 2026-10-13 — 3 clase de FP dovedite pe repo-uri AI reale (runda 2)
+# ═══════════════════════════════════════════════════════════════════
+
+def _make_jwt(payload):
+    import base64
+    def seg(d):
+        return base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()
+    return f"{seg({'alg':'HS256','typ':'JWT'})}.{seg(payload)}.SIGNATURE"
+
+
+def test_sample_numeric_token_not_flagged():
+    # FP dovedit: `reauthentication: { token: '123456' }` = date SAMPLE de preview
+    code = "const d = { reauthentication: { token: '123456' } };"
+    res = scan_code(code, 'preview.ts')
+    assert "hardcoded_password" not in [f["type"] for f in res], f"token SAMPLE raportat: {res}"
+
+
+def test_supabase_storage_signed_url_not_flagged():
+    # FP dovedit: signed URL de storage (payload are "scope":"download") nu-i credential
+    jwt = _make_jwt({"url": "clinic-assets/logo.png", "scope": "download", "iat": 1, "exp": 2})
+    code = f'const logo = "https://x.supabase.co/storage/v1/object/sign/a/logo.png?token={jwt}";'
+    res = scan_code(code, 'migration.sql')
+    assert "hardcoded_jwt" not in [f["type"] for f in res], f"signed URL raportat ca JWT: {res}"
+
+
+def test_subprocess_list_form_not_flagged():
+    # FP dovedit: subprocess.run([...]) fara shell=True NU e injectie shell
+    code = 'subprocess.run(["wt", "-C", f"{d}/bolts/{b}", "hook", "post-merge"])'
+    res = scan_code(code, 'plan.py')
+    assert "command_injection" not in [f["type"] for f in res], f"list-form raportat: {res}"
+
+
+def test_subprocess_shell_true_still_flagged():
+    code = 'subprocess.run(f"echo {user_input}", shell=True)'
+    res = scan_code(code, 'x.py')
+    assert "command_injection" in [f["type"] for f in res], f"shell=True NU raportat: {res}"
+
+
+def test_os_system_still_flagged():
+    code = 'os.system(f"ping {host}")'
+    res = scan_code(code, 'x.py')
+    assert "command_injection" in [f["type"] for f in res], f"os.system NU raportat: {res}"

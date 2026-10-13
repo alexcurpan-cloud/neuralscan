@@ -1,0 +1,99 @@
+[
+  {
+    "repo": "MODOBOOK/modobook-uk",
+    "url": "https://github.com/MODOBOOK/modobook-uk",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "supabase/migrations/20260812151421_6c9bda41-2985-4597-98fd-12d5b0117e2f.sql",
+        "line": 3,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJr...RclA"
+      },
+      {
+        "file": "supabase/migrations/20260812151259_3a37078d-e3ba-449d-9089-6ed28c665e4c.sql",
+        "line": 2,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJr...RclA"
+      },
+      {
+        "file": "src/routes/lovable/email/auth/preview.ts",
+        "line": 59,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...456'"
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "ggsali/muscio-hub-fcdb7d6e",
+    "url": "https://github.com/ggsali/muscio-hub-fcdb7d6e",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "supabase/functions/auth-email-hook/index.ts",
+        "line": 49,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...456'"
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "afterthought/crew",
+    "url": "https://github.com/afterthought/crew",
+    "stars": 0,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "plugin/lib/plan.py",
+        "line": 4394,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp..., f\""
+      },
+      {
+        "file": "plugin/lib/plan.py",
+        "line": 4572,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp..., f\""
+      },
+      {
+        "file": "plugin/lib/plan.py",
+        "line": 5167,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp..., f\""
+      },
+      {
+        "file": "plugin/lib/plan.py",
+        "line": 5613,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f\""
+      },
+      {
+        "file": "plugin/lib/crew.py",
+        "line": 1688,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp...ref\""
+      },
+      {
+        "file": "plugin/lib/board.py",
+        "line": 77,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp...n(f\""
+      }
+    ],
+    "email": "cswanberg@mad-swan.com"
+  }
+]
