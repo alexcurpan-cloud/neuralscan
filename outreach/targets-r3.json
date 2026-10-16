@@ -1,0 +1,34 @@
+[
+  {
+    "repo": "alhk10/gaonhae-hr",
+    "url": "https://github.com/alhk10/gaonhae-hr",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/pages/public/PublicGradingList.tsx",
+        "line": 126,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...488'"
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "Verssax/ai-test-generation",
+    "url": "https://github.com/Verssax/ai-test-generation",
+    "stars": 0,
+    "language": "JavaScript",
+    "findings": [
+      {
+        "file": "cypress/e2e/login-search.cy.js",
+        "line": 7,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "pass...123'"
+      }
+    ],
+    "email": "nikitadan630@gmail.com"
+  }
+]

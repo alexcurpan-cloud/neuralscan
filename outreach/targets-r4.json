@@ -1,0 +1,456 @@
+[
+  {
+    "repo": "darklobster9512/vic-automation",
+    "url": "https://github.com/darklobster9512/vic-automation",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/pages/admin/AdminMitarbeiterDetail.tsx",
+        "line": 374,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "Pass...•••\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "OmniSafe-360/mock-overlay-magic",
+    "url": "https://github.com/OmniSafe-360/mock-overlay-magic",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "docs/persistencia/teste/014_pedido_concorrencia.py",
+        "line": 50,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...en}'"
+      },
+      {
+        "file": "docs/persistencia/teste/014_pedido_concorrencia.py",
+        "line": 86,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...en}'"
+      }
+    ],
+    "email": "omnisafe12@gmail.com"
+  },
+  {
+    "repo": "Ymyrr04/talentbridge-ph",
+    "url": "https://github.com/Ymyrr04/talentbridge-ph",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/dev/devAccounts.ts",
+        "line": 5,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...26!\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "MadDog83/polish-pathfinders",
+    "url": "https://github.com/MadDog83/polish-pathfinders",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/i18n/index.ts",
+        "line": 336,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "pass...оль\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "bitfiction/staticbot",
+    "url": "https://github.com/bitfiction/staticbot",
+    "stars": 18,
+    "language": "Shell",
+    "findings": [
+      {
+        "file": "infrastructure/_templates/do_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 4,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 5,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 6,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 7,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 8,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_multi_tenant_template/docker/volumes/db/roles.sql",
+        "line": 4,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_multi_tenant_template/docker/volumes/db/roles.sql",
+        "line": 5,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_multi_tenant_template/docker/volumes/db/roles.sql",
+        "line": 6,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_multi_tenant_template/docker/volumes/db/roles.sql",
+        "line": 7,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/do_supabase_multi_tenant_template/docker/volumes/db/roles.sql",
+        "line": 8,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/aws_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 4,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/aws_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 5,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/aws_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 6,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/aws_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 7,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      },
+      {
+        "file": "infrastructure/_templates/aws_supabase_self_hosting_template/docker/volumes/db/roles.sql",
+        "line": 8,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...ass'"
+      }
+    ],
+    "email": "ravel_lindeman@bitfiction.com"
+  },
+  {
+    "repo": "aminoqr/intern-net",
+    "url": "https://github.com/aminoqr/intern-net",
+    "stars": 0,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "dedupe.py",
+        "line": 125,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "exec...  f\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "OSINTCabal/VibeDeck",
+    "url": "https://github.com/OSINTCabal/VibeDeck",
+    "stars": 0,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "sidecar/store.py",
+        "line": 131,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "exec...  f\""
+      },
+      {
+        "file": "scripts/check_native_interop.py",
+        "line": 59,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "scripts/check_electron.py",
+        "line": 31,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      }
+    ],
+    "email": "osintcabal@gmail.com"
+  },
+  {
+    "repo": "Arthur-dlz/workbuddyapi2-dlz",
+    "url": "https://github.com/Arthur-dlz/workbuddyapi2-dlz",
+    "stars": 0,
+    "language": null,
+    "findings": [
+      {
+        "file": "wb_proxy.py",
+        "line": 18960,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "open...  f\""
+      }
+    ],
+    "email": "ardeyouxipianyi@gmail.com"
+  },
+  {
+    "repo": "finite0001/livingroom-vet-care",
+    "url": "https://github.com/finite0001/livingroom-vet-care",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "tests/scheduling/operational-reconciliation-http.ts",
+        "line": 140,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "apik...key\""
+      },
+      {
+        "file": "tests/scheduling/disposable.py",
+        "line": 58,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/record-releases/source-disposable.py",
+        "line": 67,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/prescriptions/native-disposable.py",
+        "line": 74,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/payments/local-runtime.ts",
+        "line": 55,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "apik...ect\""
+      },
+      {
+        "file": "tests/payment-access/delivery-local-roundtrip.ts",
+        "line": 89,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ted\""
+      },
+      {
+        "file": "tests/outbox-retry/local-roundtrip.ts",
+        "line": 363,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...sed\""
+      },
+      {
+        "file": "tests/invoice-reminders/disposable.py",
+        "line": 22,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/inbound/local-roundtrip.ts",
+        "line": 92,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ent\""
+      },
+      {
+        "file": "tests/inbound/local-roundtrip.ts",
+        "line": 106,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ent\""
+      },
+      {
+        "file": "tests/inbound/local-roundtrip.ts",
+        "line": 127,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ent\""
+      },
+      {
+        "file": "tests/inbound/local-roundtrip.ts",
+        "line": 141,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ent\""
+      },
+      {
+        "file": "tests/inbound/local-roundtrip.ts",
+        "line": 146,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...ent\""
+      },
+      {
+        "file": "tests/ezyvet/vaccination-disposable.py",
+        "line": 65,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/ezyvet/prescription-disposable.py",
+        "line": 65,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/ezyvet/attachment-metadata-disposable.py",
+        "line": 94,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/diagnostics/pdf-registration-disposable.py",
+        "line": 110,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/diagnostics/pdf-jobs-disposable.py",
+        "line": 50,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/diagnostics/local-disposable.py",
+        "line": 48,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/controlled-drugs/engine/candidate/run-local.py",
+        "line": 62,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/clinical-dictation/disposable.py",
+        "line": 29,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "tests/clinical-audio/local-roundtrip.ts",
+        "line": 235,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "apiK...nly\""
+      },
+      {
+        "file": "tests/clinical-audio/disposable.py",
+        "line": 30,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      },
+      {
+        "file": "supabase/tests/operational_reconciliation_concurrency.py",
+        "line": 47,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp..., f\""
+      },
+      {
+        "file": "scripts/rollout/pdf-packages-staging-run.py",
+        "line": 8,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "TOKE...nv['"
+      },
+      {
+        "file": "scripts/restore-rehearsal/hosted-attachment-upgrade.py",
+        "line": 54,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "writ...t(f'"
+      }
+    ],
+    "email": "Finite01@gmail.com"
+  },
+  {
+    "repo": "esmirabduloski/techlanditalia",
+    "url": "https://github.com/esmirabduloski/techlanditalia",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/pages/area-riservata/Dashboard.tsx",
+        "line": 639,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...11e\""
+      }
+    ],
+    "email": "esmirabduloski@gmail.com"
+  }
+]

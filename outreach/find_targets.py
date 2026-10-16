@@ -36,8 +36,18 @@ QUERIES = [
     "\"built with lovable\" in:readme",
     "\"bolt.new\" in:readme",
     "\"generated with cursor\" in:readme",
-    "lovable clone in:name",
+    # Runda r4 (2026-10-16): r3 a adus mai ales clonuri de jucarie. Tintim produse
+    # reale construite cu AI (mai multe semnale + subiecte, unde traiesc app-uri vii).
+    "\"created with lovable\" in:readme",
+    "\"built with cursor\" in:readme",
+    "\"vibe coded\" in:readme",
+    "lovable supabase in:readme",
+    "topic:vibe-coding",
+    "topic:lovable",
 ]
+
+# Nu scanam clonuri/tutoriale/boilerplate (runda r3: 20/30 erau \"lovable-clone\").
+CLONE_RE = re.compile(r"(clone|tutorial|boilerplate|template|starter|demo|sample|playground|test)", re.I)
 
 SCAN_EXT = {".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".json", ".sql", ".sh", ".env"}
 SKIP_DIRS = {".git", "node_modules", "dist", "build", ".next", "vendor", "__pycache__", "coverage"}
@@ -64,6 +74,8 @@ def search(queries, per_query=8):
             if fn in seen or r.get("fork"):
                 continue
             if r.get("size", 0) > 25000:      # >25MB = prea mare pt scan rapid
+                continue
+            if CLONE_RE.search(fn):            # clonuri/tutoriale = zgomot
                 continue
             seen.add(fn)
             out.append(r)
