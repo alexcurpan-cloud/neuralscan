@@ -1,0 +1,173 @@
+[
+  {
+    "repo": "j0ruge/skills",
+    "url": "https://github.com/j0ruge/skills",
+    "stars": 13,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "plugins/retrofit-skill/scripts/check_release_sync.py",
+        "line": 25,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "op***f'"
+      },
+      {
+        "file": "plugins/retrofit-skill/scripts/audit_gate.py",
+        "line": 16,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "op***f'"
+      }
+    ],
+    "email": "joruge@gmail.com"
+  },
+  {
+    "repo": "Bruxaok122/indicadorprobr",
+    "url": "https://github.com/Bruxaok122/indicadorprobr",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "supabase/functions/whatsapp-webhook/index.ts",
+        "line": 9,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "TOKE...ook\""
+      },
+      {
+        "file": "supabase/functions/setup-admin/index.ts",
+        "line": 21,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "pass...25!\""
+      },
+      {
+        "file": "src/pages/WebhookPage.tsx",
+        "line": 21,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "Toke...ook\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "rejuan0066-crypto/edumate-bd",
+    "url": "https://github.com/rejuan0066-crypto/edumate-bd",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 19,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 23,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 27,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 31,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 69,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 73,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 77,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "supabase/functions/env.manifest.json",
+        "line": 81,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...xxx\""
+      },
+      {
+        "file": "src/lib/diditService.ts",
+        "line": 32,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...vVo'"
+      },
+      {
+        "file": "src/lib/diditService.ts",
+        "line": 68,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ect'"
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "Report-Engainall/Nasr1",
+    "url": "https://github.com/Report-Engainall/Nasr1",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "supabase/functions/ai-gateway/index.ts",
+        "line": 18,
+        "severity": "critical",
+        "type": "hardcoded_api_key",
+        "match": "API_...KEY\""
+      }
+    ],
+    "email": "ahadnanmo@gmail.com"
+  },
+  {
+    "repo": "asimjs/badro-assessment-wallet",
+    "url": "https://github.com/asimjs/badro-assessment-wallet",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "packages/backend/src/common/dto/api-responses.dto.ts",
+        "line": 32,
+        "severity": "critical",
+        "type": "hardcoded_jwt",
+        "match": "eyJh...9..."
+      },
+      {
+        "file": "packages/backend/prisma/seed.ts",
+        "line": 7,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "PASS...123'"
+      }
+    ],
+    "email": "asimjsx@gmail.com"
+  }
+]

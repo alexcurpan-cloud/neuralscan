@@ -239,6 +239,7 @@ _EXACT_PLACEHOLDERS = {
     "changeme", "change-me", "change_me", "admin", "root", "example", "sample",
     "dummy", "todo", "fixme", "placeholder", "none", "null", "undefined",
     "yourpassword", "your_password", "your-password", "test", "12345678",
+    "password123", "123456", "qwerty",
 }
 # Markerii trebuie sa fie NON-ambigui: NU include 'aaaa'/'xxxx'/'test' (apar in
 # chei de test legitime: ghp_+xxx, SG.aaaa..., etc.).
@@ -249,6 +250,15 @@ _PLACEHOLDER_MARKERS = (
 )
 _TEST_TOKEN_PREFIXES = ("tok_", "tok-")
 
+# Prefixe de PROVIDER real: daca valoarea incepe asa, NU e placeholder chiar daca
+# are caractere repetate (ghp_xxxx, SG.aaaa, AKIAxxxx...).
+_PROVIDER_PREFIXES = (
+    "ghp_", "gho_", "ghs_", "ghr_", "github_pat_",
+    "sk_live_", "rk_live_", "sk-", "sk_",
+    "SG.", "xoxb-", "xoxp-", "xoxa-", "xoxr-",
+    "GOCSPX-", "AKIA", "ASIA", "AIza",
+)
+
 
 def _is_placeholder_value(value: str) -> bool:
     """True daca valoarea e un placeholder/valoare de test, nu un secret real."""
@@ -258,6 +268,20 @@ def _is_placeholder_value(value: str) -> bool:
     if s in _EXACT_PLACEHOLDERS:
         return True
     if s.startswith(_TEST_TOKEN_PREFIXES):
+        return True
+    # Fix 2026-10-16 (Poarta 0): placeholder evidente care scapau.
+    #   - run de 6+ caractere identice: 're_xxxxxxxxxxxx', 'lov_xxxxx'
+    #     DAR NU daca valoarea incepe cu un prefix real de provider (ghp_, SG.,
+    #     AKIA, xoxb-, GOCSPX-...) — alea folosesc des caractere repetate si
+    #     trebuie raportate.
+    #   - nume de variabila de mediu (SCREAMING_SNAKE, fara minuscule): 'AI_GEMINI_API_KEY'
+    #   - exemplu trunchiat in documentatie: 'eyJ...'
+    raw = value.strip()
+    if re.search(r"(.)\1{5,}", s) and not raw.startswith(_PROVIDER_PREFIXES):
+        return True
+    if len(raw) >= 6 and "_" in raw and re.fullmatch(r"[A-Z0-9_]+", raw):
+        return True
+    if "..." in s:
         return True
     return any(m in s for m in _PLACEHOLDER_MARKERS)
 
