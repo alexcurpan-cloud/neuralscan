@@ -1,0 +1,271 @@
+[
+  {
+    "repo": "ticnutai/smart-hebrew-transcriber",
+    "url": "https://github.com/ticnutai/smart-hebrew-transcriber",
+    "stars": 0,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "tools/smart_compare.py",
+        "line": 669,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "os***f\""
+      }
+    ],
+    "email": "office.tenarch@gmail.com"
+  },
+  {
+    "repo": "yun-innovation/mosaicWave",
+    "url": "https://github.com/yun-innovation/mosaicWave",
+    "stars": 0,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "src/server/mosaicwave/config.py",
+        "line": 554,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f\""
+      }
+    ],
+    "email": null
+  },
+  {
+    "repo": "authenticfake/clike",
+    "url": "https://github.com/authenticfake/clike",
+    "stars": 1,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "orchestrator/eval_runner.py",
+        "line": 139,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp...True"
+      },
+      {
+        "file": "orchestrator/eval_environment.py",
+        "line": 221,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f'"
+      },
+      {
+        "file": "orchestrator/eval_environment.py",
+        "line": 222,
+        "severity": "critical",
+        "type": "sql_injection_concat",
+        "match": "ex***f'"
+      },
+      {
+        "file": "orchestrator/services/finalize_verify.py",
+        "line": 135,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      },
+      {
+        "file": "orchestrator/services/local_agent/kit.py",
+        "line": 220,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      },
+      {
+        "file": "orchestrator/services/local_agent/eval.py",
+        "line": 1,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      },
+      {
+        "file": "extensions/vscode/service-auth.js",
+        "line": 10,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "SECR...ken'"
+      },
+      {
+        "file": "extensions/vscode/package.json",
+        "line": 253,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      },
+      {
+        "file": "extensions/vscode/extension.js",
+        "line": 1952,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "SECR...ken'"
+      },
+      {
+        "file": "extensions/vscode/extension.js",
+        "line": 2368,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      },
+      {
+        "file": "benchmark/run_benchmark.py",
+        "line": 517,
+        "severity": "high",
+        "type": "eval_usage",
+        "match": "ev*** ("
+      }
+    ],
+    "email": "andrea.franco@gmail.com"
+  },
+  {
+    "repo": "N1C0SM/Autopilot",
+    "url": "https://github.com/N1C0SM/Autopilot",
+    "stars": 1,
+    "language": "TypeScript",
+    "findings": [
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 200,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 201,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tag\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 202,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 203,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 204,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ter\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 205,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 206,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ame\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 207,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 208,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...lue\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 209,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 210,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ing\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 211,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 212,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ent\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 213,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...tml\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 214,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ber\""
+      },
+      {
+        "file": "src/components/admin/EmailTemplatesEditor.tsx",
+        "line": 215,
+        "severity": "high",
+        "type": "hardcoded_password",
+        "match": "toke...ord\""
+      }
+    ],
+    "email": "nicolassanmarcos4@gmail.com"
+  },
+  {
+    "repo": "jinjan21-lgtm/vibe-flow-skill",
+    "url": "https://github.com/jinjan21-lgtm/vibe-flow-skill",
+    "stars": 0,
+    "language": "Python",
+    "findings": [
+      {
+        "file": "scripts/qa_run.py",
+        "line": 219,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp...True"
+      },
+      {
+        "file": "scripts/hindex.py",
+        "line": 577,
+        "severity": "high",
+        "type": "path_traversal",
+        "match": "op***f\""
+      },
+      {
+        "file": "scripts/handoff.py",
+        "line": 191,
+        "severity": "critical",
+        "type": "command_injection",
+        "match": "subp...True"
+      }
+    ],
+    "email": "jinjan21@gmail.com"
+  }
+]

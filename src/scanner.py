@@ -106,6 +106,99 @@ def _is_safe_subprocess_list_call(line_text: str, matched: str) -> bool:
     return bool(re.match(r"\s*subprocess\.\w+\s*\(\s*\[", matched))
 
 
+# ── Fix 2026-10-18 (lot r6): identificatori nu sunt secrete ──────────────
+# Dovedit pe lotul r6: `SERVICE_TOKEN_SECRET = 'clike.serviceToken'` (nume de cheie
+# in SecretStorage) si `{ token: "tag.html", foreground: "FF9F0A" }` (regula de
+# syntax highlighting) au fost raportate ca "parola hardcodata". 18 din 32 findings.
+_KEY_NAME_RE = re.compile(r"^[a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$")
+
+
+def _looks_like_identifier(value: str) -> bool:
+    """True daca valoarea e un NUME de cheie/identificator, nu un secret.
+
+    Secretele reale nu arata ca niste nume punctate cu litere mici
+    ('clike.serviceToken', 'tag.html')."""
+    v = (value or "").strip()
+    if not v or len(v) > 60:
+        return False
+    return bool(_KEY_NAME_RE.match(v))
+
+
+# ── Fix 2026-10-18 (lot r6): proza/documentatie nu e vulnerabilitate ─────
+# Dovedit pe lotul r6: `subprocess.run(shell=True)` mentionat intr-un DOCSTRING si
+# `eval(` dintr-un text de ajutor CLI (`help="... eval (roadmap §3)"`) au fost
+# raportate ca 'command_injection critical' / 'eval_usage high'.
+_PROSE_CODE_HINTS = re.compile(
+    r"\b(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|DROP|CREATE|ALTER)\b"
+    r"|curl|wget|\brm\b|\bsudo\b", re.IGNORECASE)
+
+
+def _is_eval_definition(line_text: str) -> bool:
+    """True pentru `def eval(...)` / `async def eval(...)` — numele functiei, nu eval().
+
+    FP dovedit r6: `orchestrator/services/local_agent/eval.py:1` raportat ca eval_usage."""
+    return bool(re.search(r"\b(?:async\s+)?def\s+eval\s*\(", line_text))
+
+
+def _is_ui_theme_rule(line_text: str) -> bool:
+    """True pentru reguli de tema / syntax highlighting (`{ token: "x", foreground: "FFF" }`).
+
+    FP dovedit r6: 6 findings 'parola hardcodata' in EmailTemplatesEditor.tsx —
+    erau culori si nume de tokeni de highlight, nu secrete."""
+    return bool(re.search(r"\b(?:foreground|background|fontStyle|colors?)\s*:", line_text)
+                and re.search(r"\btoken\s*:", line_text))
+
+
+def _in_prose_string(line_text: str, match_text: str) -> bool:
+    """True daca match-ul sta intr-un string care e proza, nu cod.
+
+    Determina string-ul prin PARITATEA ghilimelelor de dinaintea match-ului
+    (regex-ul naiv se încurcă la linii cu mai multe string-uri: `ap.add_argument(
+    "--auto-eval", help="KIT ... eval (roadmap)")`).
+    Proza = >= 6 spatii in string si niciun cuvant de cod (SQL/shell).
+    """
+    idx = line_text.find(match_text)
+    if idx < 0:
+        return False
+    for q in ('"', "'"):
+        if line_text.count(q, 0, idx) % 2 == 1:
+            start = line_text.rfind(q, 0, idx)
+            end = line_text.find(q, idx)
+            if end == -1:
+                end = len(line_text)
+            seg = line_text[start + 1:end]
+            if _PROSE_CODE_HINTS.search(seg):
+                return False
+            if seg.count(" ") >= 6:
+                return True
+    return False
+
+
+# ── Fix 2026-10-18 (r6): docstring-urile nu sunt cod ─────────────────────
+_TRIPLE_QUOTED_RE = re.compile(r'("""|\'\'\')(?:.*?)\1', re.DOTALL)
+
+
+def _mask_docstrings(code: str) -> str:
+    """Inlocuieste blocurile triple-quoted cu spatii (aceeasi lungime, aceleasi linii).
+
+    Dovedit r6: `subprocess.run(shell=True)` si `eval (` din docstring-uri si din
+    texte de ajutor au fost raportate ca vulnerabilitati critice (clike: 4/11).
+    """
+    def _blank(m):
+        seg = m.group(0)
+        return "".join("\n" if ch == "\n" else " " for ch in seg)
+    return _TRIPLE_QUOTED_RE.sub(_blank, code)
+
+
+def _is_self_pip_install(line_text: str) -> bool:
+    """True pentru `os.system(f"{sys.executable} -m pip install ...")` — auto-install
+    de dependente, fara input extern (FP dovedit r6: smart-hebrew-transcriber)."""
+    low = line_text.lower()
+    if "pip install" not in low:
+        return False
+    return ("sys.executable" in line_text) or ("-m pip" in low)
+
+
 def _is_method_eval_context(line_before: str) -> bool:
     """True daca 'eval(' e de fapt un apel de METODA (obj.eval()) — nu eval() global.
 
@@ -630,6 +723,7 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
     # (ex: un URL 'http://...' într-un comentariu → fals-pozitiv). Înlocuim
     # comentariile cu spații — aceeași lungime, deci liniile/coloanele rămân corecte.
     code = _mask_comment_lines(code, filename)
+    code = _mask_docstrings(code)
     code = _mask_data_uris(code)
     lines = code.split('\n')
     minified = _is_minified(code)
@@ -651,6 +745,9 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                    for s, e in secret_spans):
                 continue
 
+            # Fix 2026-10-18: calculat INAINTE de filtre (unele se uita la linie).
+            line_no = code[:match.start()].count('\n') + 1
+
             # Fix 2026-10-09: placeholdere de template + chei de TEST nu sunt
             # secrete reale -> nu le raportam (fals-pozitive care ne-ar face de râs).
             if _secret_is_placeholder(match.group(), pattern_def["type"]):
@@ -666,6 +763,16 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
             # Trustpilot etc.) nu-s secrete.
             if pattern_def["type"] == "hardcoded_password" and re.search(r"data-\s*$", _text_before(code, match.start())):
                 continue
+            # Fix 2026-10-18 (lot r6): valoarea e un NUME de cheie, nu un secret
+            #   ('clike.serviceToken', 'tag.html') -> 18/32 findings din r6.
+            if pattern_def["type"] == "hardcoded_password":
+                quoted_vals = re.findall(r"[\"']([^\"']{1,})[\"']", match.group())
+                if quoted_vals and _looks_like_identifier(quoted_vals[-1]):
+                    continue
+                # Fix 2026-10-18 (r6): regula de tema/highlight (token + foreground) = UI, nu secret.
+                line_txt_ui = lines[line_no - 1] if line_no - 1 < len(lines) else ""
+                if _is_ui_theme_rule(line_txt_ui):
+                    continue
             # Fix 2026-10-16: credentiale dummy din teste + cuvinte traduse din i18n.
             if is_test and pattern_def["type"] in TEST_NOISE_TYPES:
                 continue
@@ -718,12 +825,26 @@ def scan_code(code: str, filename: str = "input") -> List[dict]:
                 # Fix 2026-10-11: model.eval() / obj.eval() = apel de metoda, nu eval() global.
                 if _is_method_eval_context(before):
                     continue
+                # Fix 2026-10-18 (r6): `def eval(` = numele functiei, nu eval() global.
+                line_txt_eval = lines[line_no - 1] if line_no - 1 < len(lines) else ""
+                if _is_eval_definition(line_txt_eval):
+                    continue
 
             # Fix 2026-10-13: subprocess.run([...]) in forma de LISTA (fara shell=True)
             # nu e injectie shell — FP dovedit (afterthought/crew).
             if pattern_def["type"] == "command_injection":
                 line_txt_ci = lines[line_no - 1] if line_no - 1 < len(lines) else ""
                 if _is_safe_subprocess_list_call(line_txt_ci, match.group()):
+                    continue
+                # Fix 2026-10-18 (r6): auto-install de dependente (sys.executable -m pip).
+                if _is_self_pip_install(line_txt_ci):
+                    continue
+
+            # Fix 2026-10-18 (lot r6): match intr-un string de PROZA (docstring, text
+            # de ajutor CLI) nu e vulnerabilitate — dovedit pe clike (4 din 11).
+            if pattern_def["type"] in ("command_injection", "eval_usage", "path_traversal"):
+                line_txt_prose = lines[line_no - 1] if line_no - 1 < len(lines) else ""
+                if _in_prose_string(line_txt_prose, match.group()):
                     continue
 
             # Fix 2026-10-11: PRAGMA/DDL nu se parametrizeaza (nu e injectabil prin concat).
