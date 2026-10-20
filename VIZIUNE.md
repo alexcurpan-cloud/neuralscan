@@ -1,8 +1,10 @@
 # VIZIUNEA — o pagină, citită când apare pofta de proiect nou
 
-> **ÎNCHIS 20-Oct-2026, 08:26 — decizie Alex: opțiunea (a).** NeuralScan nu mai e produs.
-> Rămâne skill + portofoliu (`neuralscan/PORTOFOLIU.md`). Pagina de mai jos rămâne
-> ca înregistrare a raționamentului care a dus la decizie — nu ca plan activ.
+> **ÎNCHIS DEFINITIV 20-Oct-2026, 08:43 — decizie finală Alex.** NeuralScan nu este și nu va fi
+> tratat ca „aproape un SaaS". Sunt două afaceri diferite: produs SaaS (oprit) și serviciu manual
+> de audit (posibil doar la cerere explicită). Investiția deja făcută nu decide direcția.
+> Rămâne: portofoliu + skill intern + bază pentru 1–2 audituri manuale (`neuralscan/PORTOFOLIU.md`).
+> Pagina de mai jos rămâne ca înregistrare a raționamentului, nu ca plan activ.
 
 > Scris 20-Oct-2026, 06:10. Pentru Alex. Dacă nu înțelegi pe deplin ce facem, creierul fuge la „hai să începem altceva". Pagina asta e ancora.
 

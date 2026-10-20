@@ -47,5 +47,12 @@
 - Rapoarte Poarta 0: `neuralscan/outreach/poarta0-*.md`
 
 ## Status
-**ÎNCHIS ca produs la 20-Oct-2026.** Codul rămâne funcțional și poate fi folosit
-ca unealtă internă oricând. Nu se mai investesc ore de dezvoltare sau outreach.
+**ÎNCHIS DEFINITIV ca produs SaaS la 20-Oct-2026, 08:43 (decizie finală Alex).**
+
+Nu se tratează ca „aproape un SaaS". Sunt două afaceri diferite:
+- **Produs SaaS** — oprit definitiv. Zero dezvoltare nouă, zero outreach.
+- **Serviciu manual de audit** — posibil doar dacă Alex alege explicit modelul de consultanță,
+  pentru 1–2 clienți. Nu este o continuare implicită a proiectului.
+
+Codul rămâne funcțional ca unealtă internă. Investiția deja făcută nu decide direcția.
+Motivul complet + dovezile: `sprint/2026-10-20-research-probleme.md` și `VIZIUNE.md`.
